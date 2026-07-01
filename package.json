@@ -13,6 +13,16 @@
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
+    },
+    "./cron": {
+      "import": {
+        "types": "./dist/cron.d.ts",
+        "default": "./dist/cron.js"
+      },
+      "require": {
+        "types": "./dist/cron.d.cts",
+        "default": "./dist/cron.cjs"
+      }
     }
   },
   "main": "./dist/index.cjs",
@@ -26,6 +36,8 @@
   "scripts": {
     "build": "tsup",
     "test": "node --import tsx --test test/*.test.ts",
+    "test:example": "node --test examples/scheduler",
+    "example": "node examples/scheduler/demo.mjs",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },

@@ -4,7 +4,6 @@ import { cmp } from "./internal.js";
 import { Seq } from "./seq.js";
 import { range, type RangeOptions } from "./range.js";
 import { recur, type RecurRule } from "./recur.js";
-import { cron, cronOccurrences, parseCron, type CronOptions } from "./cron.js";
 
 /**
  * A `Schedule` is the unifying answer to "**when does this happen?**". Cron
@@ -50,14 +49,6 @@ export class Schedule<T extends TemporalPoint = Temporal.ZonedDateTime> {
     return new Schedule(occ);
   }
 
-  /** A schedule from a cron expression (occurrences are `ZonedDateTime`). */
-  static cron(expr: string, options: CronOptions): Schedule<Temporal.ZonedDateTime> {
-    const parsed = parseCron(expr, options.seconds);
-    return new Schedule<Temporal.ZonedDateTime>((from) =>
-      cronOccurrences(parsed, from, options, true),
-    );
-  }
-
   /** A schedule from an RRULE-style recurrence rule. */
   static rule<T extends TemporalPoint>(rule: RecurRule<T>): Schedule<T> {
     const all = recur(rule);
@@ -70,6 +61,3 @@ export class Schedule<T extends TemporalPoint = Temporal.ZonedDateTime> {
     return new Schedule<T>((from) => all.dropWhile((t) => cmp(t, from) < 0));
   }
 }
-
-// Re-export the standalone cron generator for convenience.
-export { cron };

@@ -23,11 +23,7 @@ export {
   RecurBuilder,
 } from "./builder.js";
 
-// Cron (Temporal-native, DST-aware)
-export { cron, parseCron, type CronOptions, type ParsedCron } from "./cron.js";
-export { describeCron, cronToRule, ruleToCron } from "./cron-extra.js";
-
-// Unified schedule interface
+// Unified schedule interface (cron lives in the `temporals/cron` subpath)
 export { Schedule } from "./schedule.js";
 
 // Temporal resolution (only needed by helpers that construct values)

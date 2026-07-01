@@ -123,27 +123,30 @@ recurBuilder(start).monthly().on({ weekday: "FR", nth: -1 }).count(3).toArray();
 recurBuilder(start).weekly().every(2).on("MO", "WE").toString(); // -> RRULE string
 ```
 
-### `cron(expr, options): Seq<ZonedDateTime>` — Temporal-native cron
+### `temporals/cron` — Temporal-native cron
 
-Cron is a *matching* schedule ("fire when the wall clock matches"), evaluated in
-an explicit time zone with **explicit, correct DST behaviour** — the main
-advantage over `Date`-based cron libraries.
+Cron lives in a **subpath** (`temporals/cron`) so the core stays lean. It's a
+*matching* schedule ("fire when the wall clock matches"), evaluated in an explicit
+time zone with **explicit, correct DST behaviour** — the main advantage over
+`Date`-based cron libraries.
 
 ```ts
+import { cron, cronSchedule, describeCron } from "temporals/cron";
+
 cron("0 9 * * 1-5", { timeZone: "America/New_York" }).take(3).toArray(); // next 3 weekday 9am fire times
 ```
 
 Faithful to cron semantics (and different from RRULE): clock-aligned rather than
 anchored to a start (`*/15` → `:00 :15 :30 :45`), and the day-of-month /
-day-of-week **OR quirk** (when both are restricted, either matches). Fields
-support `*`, `?`, ranges, steps, lists, and names (`JAN`, `MON`, …); `@daily`,
-`@hourly`, etc. macros; and an optional leading seconds field (6-field form).
-`L`/`W`/`#` are not yet supported.
+day-of-week **OR quirk** (when both are restricted, either matches). Full field
+syntax — `*`, `?`, ranges, steps, lists, names (`JAN`, `MON`, …); `@daily`/
+`@hourly` macros; an optional leading seconds field; and **Quartz day specials**:
+`L` / `L-n` / `LW` / `nW` (day-of-month) and `dL` / `d#n` (day-of-week).
 
 DST policy is explicit: `dstGap: "fire"` (default, shift forward) or `"skip"`;
 `dstOverlap: "first"` (default) or `"second"`. Also `parseCron`, `describeCron`
 (humaniser), and best-effort `cronToRule` / `ruleToCron` converters (lossy — they
-return `null` rather than guess).
+return `null` rather than guess; `L`/`#` map to RRULE `nth`/last).
 
 ### `Schedule` — one interface for cron, RRULE, and ranges
 
@@ -151,7 +154,10 @@ A `Schedule` is the unifying answer to "when does this happen?" — pure, never
 executes. Cron, `recur`, and `range` all compile to it.
 
 ```ts
-const s = Schedule.cron("0 9 * * 1-5", { timeZone: "America/New_York" });
+import { Schedule } from "temporals";
+import { cronSchedule } from "temporals/cron";
+
+const s = cronSchedule("0 9 * * 1-5", { timeZone: "America/New_York" });
 s.next(now);              // next fire strictly after `now`
 s.nextN(now, 5);          // next 5
 s.between(start, end);    // occurrences in [start, end)
@@ -159,6 +165,9 @@ s.between(start, end);    // occurrences in [start, end)
 Schedule.rule({ start, freq: "monthly", byWeekday: [{ weekday: "TU", nth: 2 }] });
 Schedule.range({ start, step: { days: 1 } });
 ```
+
+See [`examples/scheduler`](examples/scheduler) for a minimal reference scheduler
+that runs a `Schedule` (the *when* vs *do it* boundary).
 
 ## Supported point types
 

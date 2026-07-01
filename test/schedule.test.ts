@@ -2,13 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Temporal } from "temporal-polyfill";
 import { Schedule } from "../src/index.js";
+import { cronSchedule } from "../src/cron-entry.js";
 
 const TZ = "America/New_York";
 const Z = (s: string) => Temporal.ZonedDateTime.from(`${s}[${TZ}]`);
 const D = (s: string) => Temporal.PlainDate.from(s);
 
-test("Schedule.cron: next / nextN are strictly after `from`", () => {
-  const s = Schedule.cron("0 9 * * *", { timeZone: TZ });
+test("cronSchedule: next / nextN are strictly after `from`", () => {
+  const s = cronSchedule("0 9 * * *", { timeZone: TZ });
   assert.equal(s.next(Z("2026-01-01T09:00"))!.toPlainDateTime().toString(), "2026-01-02T09:00:00");
   assert.deepEqual(
     s.nextN(Z("2026-01-01T00:00"), 2).map((z) => z.toPlainDate().toString()),
