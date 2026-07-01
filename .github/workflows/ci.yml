@@ -26,3 +26,20 @@ jobs:
       - run: npm run test:example # exercises the built package via the subpath
       - run: npm run examples # every example must still run against the built package
       - run: npm run docs # the API reference must generate cleanly
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22 # coverage threshold flags require Node 22+
+          cache: npm
+      - run: npm ci
+      # Fail the build if coverage drops below 80% on any metric.
+      - run: >-
+          node --import tsx --test --experimental-test-coverage
+          --test-coverage-lines=80
+          --test-coverage-branches=80
+          --test-coverage-functions=80
+          test/*.test.ts

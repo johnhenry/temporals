@@ -67,6 +67,7 @@
     "build": "tsup",
     "test": "node --import tsx --test test/*.test.ts",
     "test:example": "node --test examples/scheduler",
+    "coverage": "node --import tsx --test --experimental-test-coverage test/*.test.ts",
     "example": "node examples/scheduler/demo.mjs",
     "examples": "for f in examples/*.mjs; do echo \"# $f\"; node \"$f\" >/dev/null || exit 1; done",
     "docs": "typedoc",
