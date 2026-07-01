@@ -1,5 +1,5 @@
 import type { Temporal } from "temporal-polyfill";
-import type { Weekday } from "./types.js";
+import type { DurationLike, Weekday } from "./types.js";
 import { cmp, weekdayNumber } from "./internal.js";
 import { Interval } from "./interval.js";
 import { IntervalSet } from "./interval-set.js";
@@ -22,10 +22,17 @@ function pd(): typeof Temporal.PlainDate {
   return getTemporal().PlainDate;
 }
 
-function applyObserved(date: PlainDate, observed: boolean): PlainDate {
+/**
+ * Weekend-observance rule for a holiday landing on a weekend.
+ * `"us"` (a.k.a. `true`): Sat→Fri, Sun→Mon. `"uk"`: Sat & Sun → next Monday.
+ */
+export type Observed = boolean | "us" | "uk";
+
+function applyObserved(date: PlainDate, observed: Observed): PlainDate {
   if (!observed) return date;
-  if (date.dayOfWeek === 6) return date.subtract({ days: 1 }); // Sat → Fri
-  if (date.dayOfWeek === 7) return date.add({ days: 1 }); // Sun → Mon
+  const style = observed === "uk" ? "uk" : "us";
+  if (date.dayOfWeek === 6) return style === "uk" ? date.add({ days: 2 }) : date.subtract({ days: 1 });
+  if (date.dayOfWeek === 7) return date.add({ days: 1 }); // Sun → Mon (both styles)
   return date;
 }
 
@@ -33,10 +40,36 @@ function applyObserved(date: PlainDate, observed: boolean): PlainDate {
 export type HolidayRule = (year: number) => PlainDate | null;
 
 /** A holiday on a fixed month/day (e.g. Jan 1), optionally shifted off weekends. */
-export function fixedHoliday(month: number, day: number, opts: { observed?: boolean } = {}): HolidayRule {
+export function fixedHoliday(month: number, day: number, opts: { observed?: Observed } = {}): HolidayRule {
   return (year) => {
     const d = pd().from({ year, month, day }, { overflow: "reject" });
     return applyObserved(d, opts.observed ?? false);
+  };
+}
+
+/**
+ * A holiday computed from Western (Gregorian) Easter Sunday plus an offset in
+ * days (e.g. `-2` for Good Friday, `+1` for Easter Monday).
+ */
+export function easterHoliday(offsetDays = 0, opts: { observed?: Observed } = {}): HolidayRule {
+  return (year) => {
+    // Anonymous Gregorian computus.
+    const a = year % 19;
+    const b = Math.floor(year / 100);
+    const c = year % 100;
+    const d = Math.floor(b / 4);
+    const e = b % 4;
+    const f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4);
+    const k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31);
+    const day = ((h + l - 7 * m + 114) % 31) + 1;
+    const easter = pd().from({ year, month, day }).add({ days: offsetDays });
+    return applyObserved(easter, opts.observed ?? false);
   };
 }
 
@@ -48,7 +81,7 @@ export function nthWeekdayHoliday(
   month: number,
   weekday: Weekday,
   nth: number,
-  opts: { observed?: boolean } = {},
+  opts: { observed?: Observed } = {},
 ): HolidayRule {
   const wd = weekdayNumber(weekday);
   return (year) => {
@@ -101,6 +134,23 @@ export class Holidays {
   inYear(year: number): PlainDate[] {
     return [...this.yearSet(year)].map((s) => pd().from(s)).sort((a, b) => cmp(a, b));
   }
+}
+
+/** The 11 US federal holidays (weekend-observed), ready to drop into a calendar. */
+export function usFederalHolidays(): Holidays {
+  return Holidays.of(
+    fixedHoliday(1, 1, { observed: true }), // New Year's Day
+    nthWeekdayHoliday(1, "MO", 3), // Martin Luther King Jr. Day
+    nthWeekdayHoliday(2, "MO", 3), // Washington's Birthday
+    nthWeekdayHoliday(5, "MO", -1), // Memorial Day
+    fixedHoliday(6, 19, { observed: true }), // Juneteenth
+    fixedHoliday(7, 4, { observed: true }), // Independence Day
+    nthWeekdayHoliday(9, "MO", 1), // Labor Day
+    nthWeekdayHoliday(10, "MO", 2), // Columbus Day
+    fixedHoliday(11, 11, { observed: true }), // Veterans Day
+    nthWeekdayHoliday(11, "TH", 4), // Thanksgiving
+    fixedHoliday(12, 25, { observed: true }), // Christmas
+  );
 }
 
 const SAFETY = 4000; // ~10y — guards against a pathological all-non-business config
@@ -164,6 +214,22 @@ export class BusinessCalendar {
       this.isBusinessDay(d),
     );
   }
+
+  /**
+   * The nth business day of a month (1-based; negative counts from the end,
+   * `-1` = last business day), or `null` if the month has fewer. Handy for
+   * payroll / settlement rules.
+   */
+  nthBusinessDay(year: number, month: number, n: number): PlainDate | null {
+    const first = getTemporal().PlainDate.from({ year, month, day: 1 });
+    const days: PlainDate[] = [];
+    for (let day = 1; day <= first.daysInMonth; day++) {
+      const d = first.with({ day });
+      if (this.isBusinessDay(d)) days.push(d);
+    }
+    const idx = n > 0 ? n - 1 : days.length + n;
+    return days[idx] ?? null;
+  }
 }
 
 /** A working-hours window as `"HH:MM"` open/close local times. */
@@ -180,11 +246,15 @@ export class WorkingHours {
   }
 
   private dayWindows(date: PlainDate, timeZone: string): Interval<ZDT>[] {
+    // The window is attributed to its *start* day's business-day status.
     if (this.calendar && !this.calendar.isBusinessDay(date)) return [];
     const T = getTemporal();
     return this.windows.map(([open, close]) => {
-      const s = date.toZonedDateTime({ timeZone, plainTime: T.PlainTime.from(open) });
-      const e = date.toZonedDateTime({ timeZone, plainTime: T.PlainTime.from(close) });
+      const openT = T.PlainTime.from(open);
+      const closeT = T.PlainTime.from(close);
+      const crosses = T.PlainTime.compare(closeT, openT) <= 0; // e.g. 22:00–06:00
+      const s = date.toZonedDateTime({ timeZone, plainTime: openT });
+      const e = (crosses ? date.add({ days: 1 }) : date).toZonedDateTime({ timeZone, plainTime: closeT });
       return new Interval<ZDT>(s, e);
     });
   }
@@ -194,7 +264,9 @@ export class WorkingHours {
     const tz = start.timeZoneId;
     const endDate = end.toPlainDate();
     const all: Interval<ZDT>[] = [];
-    for (let d = start.toPlainDate(); cmp(d, endDate) <= 0; d = d.add({ days: 1 })) {
+    // Start one day early so a window that began the previous day (overnight
+    // shift) and bleeds into [start, end) is captured; clipping trims it.
+    for (let d = start.toPlainDate().subtract({ days: 1 }); cmp(d, endDate) <= 0; d = d.add({ days: 1 })) {
       all.push(...this.dayWindows(d, tz));
     }
     return IntervalSet.from(all).intersection(IntervalSet.from([new Interval<ZDT>(start, end)]));
@@ -202,24 +274,62 @@ export class WorkingHours {
 
   /** Whether an instant falls within working hours (and a business day). */
   isOpen(instant: ZDT): boolean {
-    return this.dayWindows(instant.toPlainDate(), instant.timeZoneId).some((iv) => iv.contains(instant));
+    const tz = instant.timeZoneId;
+    const d = instant.toPlainDate();
+    // Check the previous day too, for overnight windows.
+    const wins = [...this.dayWindows(d.subtract({ days: 1 }), tz), ...this.dayWindows(d, tz)];
+    return wins.some((iv) => iv.contains(instant));
   }
 
-  /** The next instant that is open — `instant` itself if already open — or undefined. */
+  /** The next instant that is open — `instant` itself if already open — or undefined within a year. */
   nextOpen(instant: ZDT): ZDT | undefined {
-    let ref = instant;
-    let d = instant.toPlainDate();
-    for (let i = 0; i < SAFETY; i++, d = d.add({ days: 1 }), ref = d.toZonedDateTime({ timeZone: instant.timeZoneId })) {
-      for (const iv of this.dayWindows(d, instant.timeZoneId)) {
-        if (cmp(ref, iv.end) >= 0) continue;
-        return cmp(ref, iv.start) <= 0 ? iv.start : ref;
-      }
-    }
-    return undefined;
+    return this.intervalsBetween(instant, instant.add({ days: 366 })).intervals[0]?.start;
   }
 }
 
 /** Elapsed working time in `[start, end)` under the given working hours. */
 export function businessDuration(start: ZDT, end: ZDT, hours: WorkingHours): Temporal.Duration {
   return hours.intervalsBetween(start, end).totalDuration();
+}
+
+/** A schedulable participant: their working hours and (optional) busy blocks. */
+export interface Participant {
+  hours: WorkingHours;
+  busy?: IntervalSet<ZDT>;
+}
+
+/**
+ * Candidate meeting windows within `within` during which **every** participant
+ * is both working and free, and which are at least `duration` long — earliest
+ * first. Timezones compose automatically (each participant's hours are in their
+ * own zone; comparison is by instant). This is the availability substrate;
+ * ranking by preference/fairness is left to the caller.
+ */
+export function meetingSlots(opts: {
+  participants: Participant[];
+  within: Interval<ZDT>;
+  duration: DurationLike;
+  limit?: number;
+}): Interval<ZDT>[] {
+  const { participants, within, duration, limit = Infinity } = opts;
+  if (participants.length === 0) return [];
+
+  let common: IntervalSet<ZDT> | undefined;
+  for (const p of participants) {
+    const free = p.hours
+      .intervalsBetween(within.start, within.end)
+      .difference(p.busy ?? IntervalSet.empty<ZDT>());
+    common = common ? common.intersection(free) : free;
+  }
+  if (!common) return [];
+
+  const neededMs = within.start.add(duration).epochMilliseconds - within.start.epochMilliseconds;
+  const out: Interval<ZDT>[] = [];
+  for (const iv of common) {
+    if (iv.end.epochMilliseconds - iv.start.epochMilliseconds >= neededMs) {
+      out.push(iv);
+      if (out.length >= limit) break;
+    }
+  }
+  return out;
 }
