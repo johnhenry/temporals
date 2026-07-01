@@ -1,0 +1,41 @@
+name: Release
+
+# Publish to npm when a version tag (v1.2.3) is pushed.
+#   npm version patch   # bumps package.json + creates the tag
+#   git push --follow-tags
+#
+# Requires an npm automation token stored as the repo secret NPM_TOKEN
+# (npmjs.com -> Access Tokens -> Generate -> "Automation").
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # enables npm provenance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      # Fail early if the tag (v1.2.3) doesn't match package.json's version.
+      - name: Verify tag matches package version
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          TAG=${GITHUB_REF_NAME#v}
+          if [ "$PKG" != "$TAG" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package version $PKG"; exit 1
+          fi
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
