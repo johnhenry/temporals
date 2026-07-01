@@ -96,8 +96,17 @@ Sub-daily frequencies require a time-bearing start (`PlainDateTime`,
 `ZonedDateTime`, or `PlainTime`) and treat `by*` rules as filters; `bySetPos` is
 not combined with sub-daily frequencies.
 
-`recur.fromString("FREQ=MONTHLY;BYDAY=2TU;COUNT=12", dtstart)` and
-`formatRule(rule)` provide RRULE-string interop.
+Also supported:
+- **`include`** (RFC 5545 RDATE) and **`exclude`** (EXDATE) — merge extra dates
+  or drop occurrences (`count` counts what's actually returned).
+- **DST policy** for `ZonedDateTime` starts — `dstGap: "fire" | "skip"`,
+  `dstOverlap: "first" | "second"` (same knobs as cron).
+- Month/year stepping is **calendar-aware** (correct across Hebrew leap years,
+  Islamic, Persian, … — see Scope & limitations).
+- Impossible rules **throw** rather than silently stopping.
+
+`recur.fromString(...)`, `ruleFromString(...)`, and `formatRule(rule)` provide
+RRULE-string interop; the `temporals/ics` subpath adds full `.ics` import/export.
 
 ### `Interval<T>`
 
@@ -202,21 +211,27 @@ meetings = open slots.
 ### `temporals/business` — working time
 
 ```ts
-import { BusinessCalendar, Holidays, nthWeekdayHoliday, fixedHoliday, WorkingHours, businessDuration } from "temporals/business";
+import {
+  BusinessCalendar, Holidays, usFederalHolidays, easterHoliday,
+  WorkingHours, businessDuration, meetingSlots,
+} from "temporals/business";
 
-const cal = new BusinessCalendar({
-  holidays: Holidays.of(fixedHoliday(1, 1, { observed: true }), nthWeekdayHoliday(11, "TH", 4)),
-});
+const cal = new BusinessCalendar({ holidays: usFederalHolidays() }); // or build your own rules
 cal.isBusinessDay(date);
 cal.addBusinessDays(date, 5);
-cal.businessDaysBetween(a, b);
+cal.nthBusinessDay(2026, 1, -1);       // last business day of the month (payroll)
 
-const hours = new WorkingHours({ windows: [["09:00", "17:00"]], calendar: cal });
+const hours = new WorkingHours({ windows: [["22:00", "06:00"]], calendar: cal }); // overnight OK
 businessDuration(start, end, hours);   // elapsed working time (skips weekends/holidays/off-hours)
+
+// Mutual availability across people (each in their own zone):
+meetingSlots({ participants: [alice, bob], within, duration: { minutes: 30 } });
 ```
 
 Holiday rules reuse the same nth-weekday logic as RRULE (Thanksgiving *is*
-`nthWeekdayHoliday(11, "TH", 4)`).
+`nthWeekdayHoliday(11, "TH", 4)`); `easterHoliday(-2)` is Good Friday. `observed`
+supports `"us"` / `"uk"` weekend-shift styles. `meetingSlots` is the availability
+substrate — ranking by preference/fairness is left to the caller.
 
 ### `temporals/humanize` — durations & relative time
 
@@ -224,9 +239,20 @@ Holiday rules reuse the same nth-weekday logic as RRULE (Thanksgiving *is*
 import { humanizeDuration, formatRelative, fromNow, parseDuration } from "temporals/humanize";
 
 humanizeDuration(Temporal.Duration.from({ hours: 2, minutes: 3 })); // "2 hours, 3 minutes"
+humanizeDuration(dur, { locale: "fr" });          // localized via Intl.DurationFormat when available
 parseDuration("1h30m");                          // Temporal.Duration
 formatRelative(from, to);                         // "in 5 days" (via Intl.RelativeTimeFormat)
 fromNow(someDate);                                // "3 days ago"
+```
+
+### `temporals/ics` — iCalendar import/export
+
+```ts
+import { toICS, fromICS, icsToSeq } from "temporals/ics";
+
+const ics = toICS([{ start, rrule: "FREQ=WEEKLY;COUNT=4", exdate: [skipDay] }]);
+const [event] = fromICS(ics);       // Temporal values + RRULE string
+icsToSeq(event).toArray();          // expand DTSTART + RRULE + EXDATE/RDATE
 ```
 
 ### Backoff & DST helpers
@@ -249,6 +275,34 @@ it lives in a separate extension that wraps `temporals`.
 `PlainTime`, and `Instant` for `range`/`chunks`/`windows`. Recurrence
 (`recur`) requires a date-bearing start (`PlainDate`/`PlainDateTime`/`ZonedDateTime`).
 `cron` always produces `ZonedDateTime`.
+
+## Scope & limitations
+
+Being upfront about the edges:
+
+- **Proleptic Gregorian.** Like Temporal, dates use the proleptic Gregorian
+  calendar — there is **no** historical Julian→Gregorian 1582 cut-over (no
+  skipped days, no per-country adoption). Not suitable for historical dating
+  before ~1582.
+- **Non-ISO calendars (partial).** `range`, intervals, `startOf` (day/week/month/
+  year), business-day/weekday logic, and **`recur` month/year stepping** are
+  calendar-aware and work with Hebrew, Islamic, Persian, etc. (needs
+  `temporal-polyfill/full` or native Temporal + ICU). *Not* generalized:
+  `quarterOf`/`fiscalQuarterOf` assume 12-month years; `byWeekNo`/`byYearDay` are
+  ISO-oriented; the Chinese calendar's leap months (numeric `month` vs
+  `monthCode`) are only best-effort. `cron` is Gregorian civil time by design.
+- **`isDST` is a definition, not a law.** Defined as "offset above the year's
+  minimum offset." Correct for standard summer-DST zones; **negative-DST zones**
+  (e.g. Europe/Dublin) are inherently ambiguous — treat as advisory.
+- **Leap seconds** are not modeled (Temporal doesn't — it uses a POSIX-like time
+  scale). Durations won't reflect them.
+- **`meetingSlots` finds availability, not the *optimal* time.** It returns the
+  windows when everyone is free; scoring by preference, timezone fairness, or
+  fragmentation is a solver concern left to the caller.
+- **`Schedule` isn't serializable** as such (it's an opaque occurrence function);
+  serialize the source instead — cron string, `formatRule(rule)`, or `.ics`.
+- The reference **scheduler** ([`examples/scheduler`](examples/scheduler)) is a
+  demo, not a durable/clustered job runner.
 
 ## License
 
