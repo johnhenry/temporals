@@ -64,7 +64,7 @@ export class SeqBuilder<T extends TemporalPoint> implements Iterable<T> {
 
   #requireStep(): DurationLike {
     if (this.#step === undefined) {
-      throw new RangeError("temporal-seq: call .step(...) before iterating a seq() builder");
+      throw new RangeError("temporals: call .step(...) before iterating a seq() builder");
     }
     return this.#step;
   }
@@ -91,7 +91,7 @@ export class SeqBuilder<T extends TemporalPoint> implements Iterable<T> {
 
   #requireEnd(): T {
     if (this.#end === undefined) {
-      throw new RangeError("temporal-seq: set an end with .until(...) before requesting intervals");
+      throw new RangeError("temporals: set an end with .until(...) before requesting intervals");
     }
     return this.#end;
   }

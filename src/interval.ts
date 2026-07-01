@@ -16,7 +16,7 @@ export class Interval<T extends TemporalPoint = TemporalPoint> {
   constructor(start: T, end: T) {
     if (kindOf(start) !== kindOf(end)) {
       throw new TypeError(
-        "temporal-seq: Interval start and end must be the same Temporal type",
+        "temporals: Interval start and end must be the same Temporal type",
       );
     }
     this.start = start;
@@ -94,7 +94,7 @@ export class Interval<T extends TemporalPoint = TemporalPoint> {
     }
     if (slash < 0) {
       throw new RangeError(
-        `temporal-seq: invalid ISO interval "${iso}" (expected "start/end")`,
+        `temporals: invalid ISO interval "${iso}" (expected "start/end")`,
       );
     }
     const startStr = iso.slice(0, slash);

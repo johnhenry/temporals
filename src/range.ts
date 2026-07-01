@@ -32,7 +32,7 @@ export function range<T extends TemporalPoint>(options: RangeOptions<T>): Seq<T>
   const { start, end, count, step, inclusive = false, overflow } = options;
 
   if (count !== undefined && (count < 0 || !Number.isInteger(count))) {
-    throw new RangeError("temporal-seq: range() count must be a non-negative integer");
+    throw new RangeError("temporals: range() count must be a non-negative integer");
   }
 
   return new Seq<T>(function* () {
@@ -45,7 +45,7 @@ export function range<T extends TemporalPoint>(options: RangeOptions<T>): Seq<T>
 
     if (dir === 0 && count === undefined) {
       throw new RangeError(
-        "temporal-seq: range() step is zero with no count bound (would be infinite)",
+        "temporals: range() step is zero with no count bound (would be infinite)",
       );
     }
 

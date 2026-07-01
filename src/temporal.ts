@@ -25,7 +25,7 @@ export function getTemporal(): TemporalImpl {
     (globalThis as unknown as { Temporal?: TemporalImpl }).Temporal;
   if (!impl) {
     throw new ReferenceError(
-      'temporal-seq: no Temporal implementation found. Use a runtime with native Temporal (Node 22+), import "temporal-polyfill/global", or call configureTemporal(Temporal).',
+      'temporals: no Temporal implementation found. Use a runtime with native Temporal (Node 22+), import "temporal-polyfill/global", or call configureTemporal(Temporal).',
     );
   }
   return impl;

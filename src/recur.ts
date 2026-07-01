@@ -291,7 +291,7 @@ function periodCandidates(
     }
     default:
       throw new RangeError(
-        `temporal-seq: recurrence freq "${rule.freq}" is not supported (yearly/monthly/weekly/daily only)`,
+        `temporals: recurrence freq "${rule.freq}" is not supported (yearly/monthly/weekly/daily only)`,
       );
   }
 }
@@ -319,7 +319,7 @@ function initState(rule: RecurRule, ref: PlainDate): PeriodState {
     case "yearly":
       return { year: ref.year };
     default:
-      throw new RangeError(`temporal-seq: unsupported freq "${rule.freq}"`);
+      throw new RangeError(`temporals: unsupported freq "${rule.freq}"`);
   }
 }
 
@@ -335,7 +335,7 @@ function advanceState(rule: RecurRule, state: PeriodState): PeriodState {
     case "yearly":
       return { year: state.year! + interval };
     default:
-      throw new RangeError(`temporal-seq: unsupported freq "${rule.freq}"`);
+      throw new RangeError(`temporals: unsupported freq "${rule.freq}"`);
   }
 }
 
@@ -386,22 +386,22 @@ function validate(rule: RecurRule): void {
   if (SUB_DAILY.has(rule.freq)) {
     if (!isTimeBearing(k)) {
       throw new TypeError(
-        "temporal-seq: sub-daily recurrence requires a time-bearing start (PlainDateTime, ZonedDateTime, or PlainTime)",
+        "temporals: sub-daily recurrence requires a time-bearing start (PlainDateTime, ZonedDateTime, or PlainTime)",
       );
     }
   } else if (!isDateBearing(k)) {
     throw new TypeError(
-      "temporal-seq: recur() requires a date-bearing start (PlainDate, PlainDateTime, or ZonedDateTime)",
+      "temporals: recur() requires a date-bearing start (PlainDate, PlainDateTime, or ZonedDateTime)",
     );
   }
   if (rule.byWeekNo && rule.freq !== "yearly") {
-    throw new RangeError("temporal-seq: BYWEEKNO is only valid with FREQ=YEARLY");
+    throw new RangeError("temporals: BYWEEKNO is only valid with FREQ=YEARLY");
   }
   if (rule.bySetPos && SUB_DAILY.has(rule.freq)) {
-    throw new RangeError("temporal-seq: BYSETPOS with sub-daily frequencies is not supported");
+    throw new RangeError("temporals: BYSETPOS with sub-daily frequencies is not supported");
   }
   if (rule.interval !== undefined && (!Number.isInteger(rule.interval) || rule.interval < 1)) {
-    throw new RangeError("temporal-seq: recur() interval must be a positive integer");
+    throw new RangeError("temporals: recur() interval must be a positive integer");
   }
 }
 
@@ -549,7 +549,7 @@ const STR_TO_FREQ: Record<string, Frequency> = {
 
 function parseWeekday(token: string): WeekdaySpec {
   const m = /^([+-]?\d+)?(MO|TU|WE|TH|FR|SA|SU)$/.exec(token.trim());
-  if (!m) throw new RangeError(`temporal-seq: invalid BYDAY token "${token}"`);
+  if (!m) throw new RangeError(`temporals: invalid BYDAY token "${token}"`);
   const weekday = m[2] as Weekday;
   return m[1] ? { weekday, nth: Number(m[1]) } : weekday;
 }
@@ -575,7 +575,7 @@ export function recurFromString<T extends TemporalPoint>(rrule: string, dtstart:
     switch (name) {
       case "FREQ": {
         const f = STR_TO_FREQ[value.toUpperCase()];
-        if (!f) throw new RangeError(`temporal-seq: unsupported FREQ "${value}"`);
+        if (!f) throw new RangeError(`temporals: unsupported FREQ "${value}"`);
         rule.freq = f;
         freqSeen = true;
         break;
@@ -623,10 +623,10 @@ export function recurFromString<T extends TemporalPoint>(rrule: string, dtstart:
         rule.weekStart = value.toUpperCase() as Weekday;
         break;
       default:
-        throw new RangeError(`temporal-seq: unsupported RRULE part "${name}"`);
+        throw new RangeError(`temporals: unsupported RRULE part "${name}"`);
     }
   }
-  if (!freqSeen) throw new RangeError("temporal-seq: RRULE is missing FREQ");
+  if (!freqSeen) throw new RangeError("temporals: RRULE is missing FREQ");
   return recur(rule);
 }
 

@@ -35,7 +35,7 @@ export function kindOf(p: unknown): Kind {
       return "instant";
     default:
       throw new TypeError(
-        `temporal-seq: expected a Temporal point (PlainDate, PlainDateTime, ZonedDateTime, PlainYearMonth, PlainTime, Instant), got ${
+        `temporals: expected a Temporal point (PlainDate, PlainDateTime, ZonedDateTime, PlainYearMonth, PlainTime, Instant), got ${
           name ?? typeof p
         }`,
       );
@@ -147,7 +147,7 @@ export const WEEKDAY_CODES: readonly Weekday[] = [
 /** Map a weekday code to Temporal's `dayOfWeek` number (Mon=1 … Sun=7). */
 export function weekdayNumber(code: Weekday): number {
   const n = WEEKDAY_CODES.indexOf(code);
-  if (n < 0) throw new RangeError(`temporal-seq: invalid weekday "${code}"`);
+  if (n < 0) throw new RangeError(`temporals: invalid weekday "${code}"`);
   return n + 1;
 }
 
@@ -166,7 +166,7 @@ export function datePart(p: TemporalPoint): PlainDate {
     return (p as Temporal.PlainDateTime | Temporal.ZonedDateTime).toPlainDate();
   }
   throw new TypeError(
-    "temporal-seq: recurrence requires a date-bearing point (PlainDate, PlainDateTime, or ZonedDateTime)",
+    "temporals: recurrence requires a date-bearing point (PlainDate, PlainDateTime, or ZonedDateTime)",
   );
 }
 
@@ -185,7 +185,7 @@ export function withDate<T extends TemporalPoint>(template: T, date: PlainDate):
       plainTime: zdt.toPlainTime(),
     }) as unknown as T;
   }
-  throw new TypeError("temporal-seq: cannot rebuild a non-date-bearing point onto a date");
+  throw new TypeError("temporals: cannot rebuild a non-date-bearing point onto a date");
 }
 
 /** Construct a PlainDate (y, m, d) from a reference PlainDate, clamping invalid days. */

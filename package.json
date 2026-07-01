@@ -1,5 +1,5 @@
 {
-  "name": "temporal-seq",
+  "name": "temporals",
   "version": "0.1.0",
   "description": "Lazy sequences, ranges, intervals, and RRULE recurrence built on the TC39 Temporal API.",
   "type": "module",
@@ -45,11 +45,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/iamjohnhenry/temporal-seq.git"
+    "url": "git+https://github.com/johnhenry/temporals.git"
   },
-  "homepage": "https://github.com/iamjohnhenry/temporal-seq#readme",
+  "homepage": "https://github.com/johnhenry/temporals#readme",
   "bugs": {
-    "url": "https://github.com/iamjohnhenry/temporal-seq/issues"
+    "url": "https://github.com/johnhenry/temporals/issues"
   },
   "engines": {
     "node": ">=18"

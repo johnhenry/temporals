@@ -1,16 +1,16 @@
-# temporal-seq
+# temporals
 
 Lazy **sequences**, **ranges**, **intervals**, and **RRULE recurrence** built on
 the TC39 [Temporal](https://tc39.es/proposal-temporal/docs/) API.
 
 Temporal ships the *atoms* of date/time — immutable points, durations, and
-calendar-aware arithmetic — but no *sequence* layer. `temporal-seq` fills that
+calendar-aware arithmetic — but no *sequence* layer. `temporals` fills that
 gap: feed in parameters, get back a lazy collection of Temporal objects, either
 **points** (`PlainDate`, `ZonedDateTime`, …) or **intervals** (`{ start, end }`
 spans).
 
 ```ts
-import { range } from "temporal-seq";
+import { range } from "temporals";
 
 // The next 10 weekdays, lazily.
 range({ start: Temporal.Now.plainDateISO(), step: { days: 1 } })
@@ -41,7 +41,7 @@ range({ start: Temporal.Now.plainDateISO(), step: { days: 1 } })
 ## Install
 
 ```sh
-npm install temporal-seq
+npm install temporals
 # On Node < 22, also:
 npm install temporal-polyfill
 ```

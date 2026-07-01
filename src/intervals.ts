@@ -26,7 +26,7 @@ export function chunks<T extends TemporalPoint>(
   const { start, end, by, partial = true } = options;
   return new Seq<Interval<T>>(function* () {
     if (cmp(add(start, by), start) <= 0) {
-      throw new RangeError("temporal-seq: chunks() `by` must be a positive duration");
+      throw new RangeError("temporals: chunks() `by` must be a positive duration");
     }
     let a = start;
     while (cmp(a, end) < 0) {
@@ -67,10 +67,10 @@ export function windows<T extends TemporalPoint>(
   const { start, end, size, step, partial = false } = options;
   return new Seq<Interval<T>>(function* () {
     if (cmp(add(start, step), start) <= 0) {
-      throw new RangeError("temporal-seq: windows() `step` must be a positive duration");
+      throw new RangeError("temporals: windows() `step` must be a positive duration");
     }
     if (cmp(add(start, size), start) <= 0) {
-      throw new RangeError("temporal-seq: windows() `size` must be a positive duration");
+      throw new RangeError("temporals: windows() `size` must be a positive duration");
     }
     let a = start;
     while (cmp(a, end) < 0) {
