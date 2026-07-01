@@ -5,6 +5,22 @@ import { range } from "./range.js";
 import type { Seq } from "./seq.js";
 import { getTemporal } from "./temporal.js";
 
+/** The 13 Allen interval relations (half-open). */
+export type AllenRelation =
+  | "before"
+  | "after"
+  | "meets"
+  | "metBy"
+  | "overlaps"
+  | "overlappedBy"
+  | "starts"
+  | "startedBy"
+  | "during"
+  | "contains"
+  | "finishes"
+  | "finishedBy"
+  | "equals";
+
 /**
  * A half-open span `[start, end)` between two like-typed Temporal points.
  * Temporal has no native interval type; this fills that gap.
@@ -41,6 +57,36 @@ export class Interval<T extends TemporalPoint = TemporalPoint> {
   /** Whether this interval fully contains another. */
   encloses(other: Interval<T>): boolean {
     return cmp(this.start, other.start) <= 0 && cmp(other.end, this.end) <= 0;
+  }
+
+  /** Whether this interval touches another end-to-end with no gap or overlap. */
+  abuts(other: Interval<T>): boolean {
+    return cmp(this.end, other.start) === 0 || cmp(other.end, this.start) === 0;
+  }
+
+  /**
+   * Allen's interval relation of `this` to `other` (half-open semantics): one of
+   * `before`, `meets`, `overlaps`, `starts`, `during`, `finishes`, `equals` and
+   * their inverses `after`, `metBy`, `overlappedBy`, `startedBy`, `contains`,
+   * `finishedBy`.
+   */
+  relation(other: Interval<T>): AllenRelation {
+    const as = this.start;
+    const ae = this.end;
+    const bs = other.start;
+    const be = other.end;
+    if (cmp(ae, bs) < 0) return "before";
+    if (cmp(ae, bs) === 0) return "meets";
+    if (cmp(be, as) < 0) return "after";
+    if (cmp(be, as) === 0) return "metBy";
+    const ss = cmp(as, bs);
+    const ee = cmp(ae, be);
+    if (ss === 0 && ee === 0) return "equals";
+    if (ss === 0) return ee < 0 ? "starts" : "startedBy";
+    if (ee === 0) return ss > 0 ? "finishes" : "finishedBy";
+    if (ss < 0 && ee > 0) return "contains";
+    if (ss > 0 && ee < 0) return "during";
+    return ss < 0 ? "overlaps" : "overlappedBy";
   }
 
   /** The overlapping span, or `null` if the intervals are disjoint. */

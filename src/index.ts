@@ -1,8 +1,20 @@
 // Core sequence wrapper
 export { Seq } from "./seq.js";
 
-// Interval value type
-export { Interval } from "./interval.js";
+// Interval value type + algebra
+export { Interval, type AllenRelation } from "./interval.js";
+export { IntervalSet } from "./interval-set.js";
+
+// Calendar rounding & bucketing
+export {
+  startOf,
+  endOf,
+  truncate,
+  quarterOf,
+  fiscalQuarterOf,
+  fiscalYearOf,
+  type CalendarUnit,
+} from "./calendar.js";
 
 // Generators
 export { range, type RangeOptions } from "./range.js";

@@ -23,6 +23,26 @@
         "types": "./dist/cron.d.cts",
         "default": "./dist/cron.cjs"
       }
+    },
+    "./business": {
+      "import": {
+        "types": "./dist/business.d.ts",
+        "default": "./dist/business.js"
+      },
+      "require": {
+        "types": "./dist/business.d.cts",
+        "default": "./dist/business.cjs"
+      }
+    },
+    "./humanize": {
+      "import": {
+        "types": "./dist/humanize.d.ts",
+        "default": "./dist/humanize.js"
+      },
+      "require": {
+        "types": "./dist/humanize.d.cts",
+        "default": "./dist/humanize.cjs"
+      }
     }
   },
   "main": "./dist/index.cjs",

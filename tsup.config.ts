@@ -1,7 +1,12 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: { index: "src/index.ts", cron: "src/cron-entry.ts" },
+  entry: {
+    index: "src/index.ts",
+    cron: "src/cron-entry.ts",
+    business: "src/business.ts",
+    humanize: "src/humanize.ts",
+  },
   format: ["esm", "cjs"],
   dts: true,
   clean: true,

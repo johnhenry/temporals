@@ -169,6 +169,66 @@ Schedule.range({ start, step: { days: 1 } });
 See [`examples/scheduler`](examples/scheduler) for a minimal reference scheduler
 that runs a `Schedule` (the *when* vs *do it* boundary).
 
+### Calendar rounding & bucketing
+
+```ts
+import { startOf, endOf, quarterOf, fiscalQuarterOf } from "temporals";
+
+startOf(dt, "week", { weekStart: "MO" });   // floor to a unit
+endOf(dt, "month");                          // exclusive upper bound (start of next)
+quarterOf(date);                             // 1–4
+fiscalQuarterOf(date, 10);                   // fiscal year starting in October
+```
+
+Units: `year` `quarter` `month` `week` `day` `hour` `minute` `second`. `endOf`
+is the exclusive next-unit start, so `[startOf(p,u), endOf(p,u))` is the bucket.
+
+### Interval algebra & sets
+
+`Interval` gains Allen's 13 relations (`a.relation(b)` → `meets`/`overlaps`/
+`during`/…). `IntervalSet` is a normalized (merged, sorted) set with the
+operations you need for **free/busy availability**:
+
+```ts
+import { Interval, IntervalSet } from "temporals";
+
+const free = work.difference(busy);   // union / intersection / difference / gaps
+free.totalDuration();                 // summed coverage
+```
+
+See [`examples/availability.mjs`](examples/availability.mjs) — working hours −
+meetings = open slots.
+
+### `temporals/business` — working time
+
+```ts
+import { BusinessCalendar, Holidays, nthWeekdayHoliday, fixedHoliday, WorkingHours, businessDuration } from "temporals/business";
+
+const cal = new BusinessCalendar({
+  holidays: Holidays.of(fixedHoliday(1, 1, { observed: true }), nthWeekdayHoliday(11, "TH", 4)),
+});
+cal.isBusinessDay(date);
+cal.addBusinessDays(date, 5);
+cal.businessDaysBetween(a, b);
+
+const hours = new WorkingHours({ windows: [["09:00", "17:00"]], calendar: cal });
+businessDuration(start, end, hours);   // elapsed working time (skips weekends/holidays/off-hours)
+```
+
+Holiday rules reuse the same nth-weekday logic as RRULE (Thanksgiving *is*
+`nthWeekdayHoliday(11, "TH", 4)`).
+
+### `temporals/humanize` — durations & relative time
+
+```ts
+import { humanizeDuration, formatRelative, fromNow, parseDuration } from "temporals/humanize";
+
+humanizeDuration(Temporal.Duration.from({ hours: 2, minutes: 3 })); // "2 hours, 3 minutes"
+parseDuration("1h30m");                          // Temporal.Duration
+formatRelative(from, to);                         // "in 5 days" (via Intl.RelativeTimeFormat)
+fromNow(someDate);                                // "3 days ago"
+```
+
 ## Supported point types
 
 `PlainDate`, `PlainDateTime`, `ZonedDateTime` (DST-correct), `PlainYearMonth`,
