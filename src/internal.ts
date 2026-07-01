@@ -130,6 +130,35 @@ export function key(p: TemporalPoint): string {
   return p.toString();
 }
 
+export interface DstPolicy {
+  /** Wall time in a spring-forward gap: `"fire"` (shift forward, default) or `"skip"`. */
+  dstGap?: "fire" | "skip";
+  /** Wall time repeated on fall-back: `"first"` (default) or `"second"` offset. */
+  dstOverlap?: "first" | "second";
+}
+
+/**
+ * Resolve a wall-clock `PlainDateTime` to a zoned instant under an explicit DST
+ * policy, or `null` when it falls in a spring-forward gap and the policy is
+ * `skip`. Shared by cron and recurrence so their DST behaviour is identical.
+ */
+export function resolveWallToZoned(
+  wall: Temporal.PlainDateTime,
+  timeZone: string,
+  policy: DstPolicy,
+): Temporal.ZonedDateTime | null {
+  const compatible = wall.toZonedDateTime(timeZone, { disambiguation: "compatible" });
+  if (!compatible.toPlainDateTime().equals(wall)) {
+    return (policy.dstGap ?? "fire") === "skip" ? null : compatible;
+  }
+  const earlier = wall.toZonedDateTime(timeZone, { disambiguation: "earlier" });
+  const later = wall.toZonedDateTime(timeZone, { disambiguation: "later" });
+  if (!earlier.equals(later)) {
+    return (policy.dstOverlap ?? "first") === "second" ? later : earlier;
+  }
+  return compatible;
+}
+
 // ---------------------------------------------------------------------------
 // Calendar-date helpers (operate on PlainDate, derived from the input value).
 // ---------------------------------------------------------------------------

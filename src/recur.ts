@@ -4,17 +4,19 @@ import type {
   Weekday,
   WeekdaySpec,
 } from "./types.js";
+import type { Temporal } from "temporal-polyfill";
 import {
   add,
   cmp,
   datePart,
   daysInMonth,
+  type DstPolicy,
   firstWeekdayOfMonth,
   isDateBearing,
   key,
   kindOf,
-  makeDate,
   type PlainDate,
+  resolveWallToZoned,
   weekdayNumber,
   withDate,
 } from "./internal.js";
@@ -55,6 +57,13 @@ export interface RecurRule<T extends TemporalPoint = TemporalPoint> {
   bySetPos?: number[];
   /** Week start for WEEKLY expansion; default `"MO"`. */
   weekStart?: Weekday;
+  /** Extra one-off occurrences to merge in (RFC 5545 RDATE). */
+  include?: T[];
+  /** Occurrences to remove (RFC 5545 EXDATE), matched by value. */
+  exclude?: T[];
+  /** DST policy for `ZonedDateTime` starts (gap: fire/skip, overlap: first/second). */
+  dstGap?: "fire" | "skip";
+  dstOverlap?: "first" | "second";
 }
 
 interface NormWeekday {
@@ -69,9 +78,10 @@ function normWeekday(spec: WeekdaySpec): NormWeekday {
   return { wd: weekdayNumber(spec.weekday), nth: spec.nth };
 }
 
-function addMonths(year: number, month: number, n: number): { year: number; month: number } {
-  const total = year * 12 + (month - 1) + n;
-  return { year: Math.floor(total / 12), month: (total % 12) + 1 };
+function intRange(lo: number, hi: number): number[] {
+  const out: number[] = [];
+  for (let i = lo; i <= hi; i++) out.push(i);
+  return out;
 }
 
 function resolveMonthDay(md: number, dim: number): number | null {
@@ -224,13 +234,15 @@ function periodCandidates(
       return out;
     }
     case "monthly": {
-      const { year, month } = state;
-      if (!monthOk(month!)) return [];
-      const days = expandMonth(ref, year!, month!, byMonthDay, byWeekday, ref.day);
-      return days.map((d) => makeDate(ref, year!, month!, d));
+      const anchor = state.anchor!;
+      const month = anchor.month;
+      if (!monthOk(month)) return [];
+      const days = expandMonth(anchor, anchor.year, month, byMonthDay, byWeekday, ref.day);
+      return days.map((d) => anchor.with({ day: d }));
     }
     case "yearly": {
-      const year = state.year!;
+      const anchor = state.anchor!;
+      const year = anchor.year;
       const hasMD = byMonthDay && byMonthDay.length > 0;
       const hasWD = byWeekday && byWeekday.length > 0;
       const hasYD = rule.byYearDay && rule.byYearDay.length > 0;
@@ -281,11 +293,15 @@ function periodCandidates(
           .sort((a, b) => cmp(a, b));
       }
 
-      const months = byMonth ?? (hasMD || hasWD ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] : [ref.month]);
+      // Calendar-aware month span (Hebrew leap years have 13 months, etc.).
+      const monthsInYear = anchor.monthsInYear;
+      const months = byMonth ?? (hasMD || hasWD ? intRange(1, monthsInYear) : [ref.month]);
       const out: PlainDate[] = [];
       for (const month of months) {
-        const days = expandMonth(ref, year, month, byMonthDay, byWeekday, ref.day);
-        for (const d of days) out.push(makeDate(ref, year, month, d));
+        if (month < 1 || month > monthsInYear) continue;
+        const monthAnchor = anchor.with({ month, day: 1 }, { overflow: "constrain" });
+        const days = expandMonth(monthAnchor, year, month, byMonthDay, byWeekday, ref.day);
+        for (const d of days) out.push(monthAnchor.with({ day: d }));
       }
       return out;
     }
@@ -299,8 +315,7 @@ function periodCandidates(
 interface PeriodState {
   date?: PlainDate; // daily
   weekStartDate?: PlainDate; // weekly
-  year?: number; // monthly/yearly
-  month?: number; // monthly
+  anchor?: PlainDate; // monthly: 1st of the month; yearly: 1st day of the year
 }
 
 function startOfWeek(pd: PlainDate, wkst: number): PlainDate {
@@ -315,9 +330,9 @@ function initState(rule: RecurRule, ref: PlainDate): PeriodState {
     case "weekly":
       return { weekStartDate: startOfWeek(ref, weekdayNumber(rule.weekStart ?? "MO")) };
     case "monthly":
-      return { year: ref.year, month: ref.month };
+      return { anchor: ref.with({ day: 1 }) };
     case "yearly":
-      return { year: ref.year };
+      return { anchor: ref.with({ month: 1, day: 1 }, { overflow: "constrain" }) };
     default:
       throw new RangeError(`temporals: unsupported freq "${rule.freq}"`);
   }
@@ -331,18 +346,40 @@ function advanceState(rule: RecurRule, state: PeriodState): PeriodState {
     case "weekly":
       return { weekStartDate: state.weekStartDate!.add({ weeks: interval }) };
     case "monthly":
-      return addMonths(state.year!, state.month!, interval);
+      // Calendar arithmetic (no year*12 assumption).
+      return { anchor: state.anchor!.add({ months: interval }) };
     case "yearly":
-      return { year: state.year! + interval };
+      return { anchor: state.anchor!.add({ years: interval }) };
     default:
       throw new RangeError(`temporals: unsupported freq "${rule.freq}"`);
   }
 }
 
-/** Expand date candidates into typed values, applying time rules. */
+/** Expand date candidates into typed values, applying time rules (and DST policy for zoned). */
 function applyTimes<T extends TemporalPoint>(template: T, date: PlainDate, rule: RecurRule): T[] {
-  const base = withDate(template, date);
   const k = kindOf(template);
+
+  // ZonedDateTime: build the wall time, then resolve under the DST policy.
+  if (k === "zoneddatetime") {
+    const zdt = template as unknown as Temporal.ZonedDateTime;
+    const tz = zdt.timeZoneId;
+    const baseTime = zdt.toPlainTime();
+    const hours = rule.byHour && rule.byHour.length ? rule.byHour : [baseTime.hour];
+    const minutes = rule.byMinute && rule.byMinute.length ? rule.byMinute : [baseTime.minute];
+    const seconds = rule.bySecond && rule.bySecond.length ? rule.bySecond : [baseTime.second];
+    const policy: DstPolicy = { dstGap: rule.dstGap, dstOverlap: rule.dstOverlap };
+    const out: T[] = [];
+    for (const hour of hours)
+      for (const minute of minutes)
+        for (const second of seconds) {
+          const wall = date.toPlainDateTime(baseTime.with({ hour, minute, second }));
+          const resolved = resolveWallToZoned(wall, tz, policy);
+          if (resolved) out.push(resolved as unknown as T);
+        }
+    return out;
+  }
+
+  const base = withDate(template, date);
   const hasTime =
     (rule.byHour && rule.byHour.length) ||
     (rule.byMinute && rule.byMinute.length) ||
@@ -452,76 +489,113 @@ function* subDailyGen<T extends TemporalPoint>(rule: RecurRule<T>): Generator<T>
   const byWeekday = rule.byWeekday?.map(normWeekday);
 
   let cur = start;
-  let emitted = 0;
   let skip = 0;
   while (true) {
-    if (rule.until !== undefined && cmp(cur, rule.until) > 0) return;
+    if (rule.until !== undefined && cmp(cur, rule.until) > 0) return; // bound the walk
     if (passesSubDaily(cur, rule, byWeekday)) {
       yield cur;
-      emitted++;
       skip = 0;
-      if (rule.count !== undefined && emitted >= rule.count) return;
     } else if (++skip > MAX_SUBDAILY_SKIP) {
-      return;
+      throw new RangeError(
+        "temporals: sub-daily recurrence matched nothing for a very long span (likely an impossible rule)",
+      );
     }
     cur = add(cur, unit);
   }
 }
 
+/** The raw, ascending stream of rule occurrences at/after `start` (no count/until/exdate). */
+function* ruleStreamGen<T extends TemporalPoint>(rule: RecurRule<T>): Generator<T> {
+  const start = rule.start;
+  const ref = datePart(start);
+  const byWeekday = rule.byWeekday?.map(normWeekday);
+  let state = initState(rule, ref);
+  let emptyStreak = 0;
+
+  while (true) {
+    const dates = periodCandidates(rule, ref, byWeekday, state);
+
+    let typed: T[] = [];
+    for (const d of dates) typed.push(...applyTimes(start, d, rule));
+    typed.sort((a, b) => cmp(a, b));
+    const seen = new Set<string>();
+    typed = typed.filter((v) => {
+      const kk = key(v);
+      if (seen.has(kk)) return false;
+      seen.add(kk);
+      return true;
+    });
+    typed = applySetPos(typed, rule.bySetPos).sort((a, b) => cmp(a, b));
+
+    let produced = false;
+    for (const c of typed) {
+      if (cmp(c, start) < 0) continue;
+      yield c;
+      produced = true;
+    }
+
+    if (produced) {
+      emptyStreak = 0;
+    } else if (++emptyStreak > MAX_EMPTY_PERIODS) {
+      throw new RangeError(
+        `temporals: recurrence produced no occurrences for ${MAX_EMPTY_PERIODS} consecutive periods (likely an impossible rule)`,
+      );
+    }
+    state = advanceState(rule, state);
+  }
+}
+
+/**
+ * Merge the rule stream with RDATE extras, drop EXDATE matches and duplicates,
+ * and apply `until` / `count`.
+ */
+function* postProcess<T extends TemporalPoint>(base: Iterator<T>, rule: RecurRule<T>): Generator<T> {
+  const start = rule.start;
+  const exSet = new Set((rule.exclude ?? []).map((d) => key(d)));
+  const extras = (rule.include ?? []).filter((d) => cmp(d, start) >= 0).sort((a, b) => cmp(a, b));
+  const { until, count } = rule;
+  let ei = 0;
+  let emitted = 0;
+  let lastKey: string | undefined;
+  let nr = base.next();
+
+  while (true) {
+    const hasRule = !nr.done;
+    const hasExtra = ei < extras.length;
+    if (!hasRule && !hasExtra) return;
+
+    let v: T;
+    let fromRule: boolean;
+    if (hasRule && (!hasExtra || cmp(nr.value, extras[ei]!) <= 0)) {
+      v = nr.value;
+      fromRule = true;
+    } else {
+      v = extras[ei]!;
+      fromRule = false;
+    }
+    if (until !== undefined && cmp(v, until) > 0) return;
+    if (fromRule) nr = base.next();
+    else ei++;
+
+    const kk = key(v);
+    if (exSet.has(kk) || kk === lastKey) continue; // EXDATE or adjacent duplicate (RDATE == rule)
+    lastKey = kk;
+    yield v;
+    if (count !== undefined && ++emitted >= count) return;
+  }
+}
+
 /**
  * A lazy sequence of recurrence instances. Unbounded unless `count` or `until`
- * is set — bound infinite rules with `.take(n)`.
+ * is set — bound infinite rules with `.take(n)`. Supports RDATE (`include`),
+ * EXDATE (`exclude`), and an explicit DST policy for zoned starts.
  */
 export function recur<T extends TemporalPoint>(rule: RecurRule<T>): Seq<T> {
   validate(rule);
-  if (SUB_DAILY.has(rule.freq)) {
-    return new Seq<T>(() => subDailyGen(rule));
-  }
-  return new Seq<T>(function* () {
-    const start = rule.start;
-    const ref = datePart(start);
-    const byWeekday = rule.byWeekday?.map(normWeekday);
-
-    let state = initState(rule, ref);
-    let emitted = 0;
-    let emptyStreak = 0;
-
-    while (true) {
-      const dates = periodCandidates(rule, ref, byWeekday, state);
-
-      // Build the full typed candidate set for the period, then setpos.
-      let typed: T[] = [];
-      for (const d of dates) typed.push(...applyTimes(start, d, rule));
-      typed.sort((a, b) => cmp(a, b));
-      // de-duplicate
-      const seen = new Set<string>();
-      typed = typed.filter((v) => {
-        const kk = key(v);
-        if (seen.has(kk)) return false;
-        seen.add(kk);
-        return true;
-      });
-      typed = applySetPos(typed, rule.bySetPos).sort((a, b) => cmp(a, b));
-
-      let producedThisPeriod = false;
-      for (const c of typed) {
-        if (cmp(c, start) < 0) continue;
-        if (rule.until !== undefined && cmp(c, rule.until) > 0) return;
-        yield c;
-        producedThisPeriod = true;
-        emitted++;
-        if (rule.count !== undefined && emitted >= rule.count) return;
-      }
-
-      if (producedThisPeriod) {
-        emptyStreak = 0;
-      } else if (++emptyStreak > MAX_EMPTY_PERIODS) {
-        return; // rule produces nothing further; avoid spinning forever
-      }
-
-      state = advanceState(rule, state);
-    }
-  });
+  const source = SUB_DAILY.has(rule.freq)
+    ? () => subDailyGen(rule)
+    : () => ruleStreamGen<T>(rule);
+  return new Seq<T>(() => postProcess(source(), rule));
 }
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 import type { Temporal } from "temporal-polyfill";
+import { resolveWallToZoned } from "./internal.js";
 import { Seq } from "./seq.js";
 import { getTemporal } from "./temporal.js";
 
@@ -314,26 +315,6 @@ function nextMatch(p: ParsedCron, from: Temporal.PlainDateTime, inclusive: boole
   throw new RangeError("temporals: cron expression matches no valid date (impossible schedule?)");
 }
 
-/** Resolve a wall-clock match to a zoned instant under the DST policy, or null to skip. */
-function resolveWall(
-  wall: Temporal.PlainDateTime,
-  timeZone: string,
-  opts: CronOptions,
-): Temporal.ZonedDateTime | null {
-  const compatible = wall.toZonedDateTime(timeZone, { disambiguation: "compatible" });
-  const isGap = !compatible.toPlainDateTime().equals(wall);
-  if (isGap) {
-    return (opts.dstGap ?? "fire") === "skip" ? null : compatible;
-  }
-  const earlier = wall.toZonedDateTime(timeZone, { disambiguation: "earlier" });
-  const later = wall.toZonedDateTime(timeZone, { disambiguation: "later" });
-  const isOverlap = !earlier.equals(later);
-  if (isOverlap) {
-    return (opts.dstOverlap ?? "first") === "second" ? later : earlier;
-  }
-  return compatible;
-}
-
 /** Internal: lazy zoned occurrences at/after `from` (strict unless `inclusive`). */
 export function cronOccurrences(
   parsed: ParsedCron,
@@ -350,7 +331,7 @@ export function cronOccurrences(
       const match = nextMatch(parsed, wall, first);
       first = false;
       wall = match;
-      const zdt = resolveWall(match, timeZone, opts);
+      const zdt = resolveWallToZoned(match, timeZone, opts);
       if (zdt) yield zdt;
     }
   });
