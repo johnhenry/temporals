@@ -19,6 +19,7 @@ export function configureTemporal(impl: TemporalImpl): void {
   configured = impl;
 }
 
+/** Resolve the active Temporal implementation (configured, else `globalThis.Temporal`). */
 export function getTemporal(): TemporalImpl {
   const impl =
     configured ??

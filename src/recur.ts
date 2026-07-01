@@ -33,6 +33,7 @@ import { Seq } from "./seq.js";
 export interface RecurRule<T extends TemporalPoint = TemporalPoint> {
   /** First instance / anchor (DTSTART). Must be date-bearing. */
   start: T;
+  /** How often the base period repeats. */
   freq: Frequency;
   /** Period multiplier; default 1. */
   interval?: number;
@@ -50,8 +51,11 @@ export interface RecurRule<T extends TemporalPoint = TemporalPoint> {
   byMonthDay?: number[];
   /** Weekdays, optionally with an ordinal (`"TU"` or `{ weekday: "TU", nth: 2 }`). */
   byWeekday?: WeekdaySpec[];
+  /** Hours of day (0–23) to expand to. */
   byHour?: number[];
+  /** Minutes (0–59) to expand to. */
   byMinute?: number[];
+  /** Seconds (0–59) to expand to. */
   bySecond?: number[];
   /** Select the nth occurrence(s) within each period (1-based; negative from end). */
   bySetPos?: number[];
@@ -61,8 +65,9 @@ export interface RecurRule<T extends TemporalPoint = TemporalPoint> {
   include?: T[];
   /** Occurrences to remove (RFC 5545 EXDATE), matched by value. */
   exclude?: T[];
-  /** DST policy for `ZonedDateTime` starts (gap: fire/skip, overlap: first/second). */
+  /** For `ZonedDateTime` starts: a wall time in a spring-forward gap — `"fire"` (shift forward, default) or `"skip"`. */
   dstGap?: "fire" | "skip";
+  /** For `ZonedDateTime` starts: a wall time repeated on fall-back — fire at the `"first"` (default) or `"second"` offset. */
   dstOverlap?: "first" | "second";
 }
 
@@ -736,9 +741,11 @@ export function formatRule(rule: RecurRule): string {
   return parts.join(";");
 }
 
-// Attach `fromString` as a static-like helper on `recur`.
+/** The type of {@link recur}, including its `.fromString` RRULE-string helper. */
 export interface RecurFn {
+  /** Build a recurrence sequence from a rule object. */
   <T extends TemporalPoint>(rule: RecurRule<T>): Seq<T>;
+  /** Build a recurrence sequence from an RFC 5545 RRULE string + DTSTART. */
   fromString<T extends TemporalPoint>(rrule: string, dtstart: T): Seq<T>;
 }
 (recur as RecurFn).fromString = recurFromString;

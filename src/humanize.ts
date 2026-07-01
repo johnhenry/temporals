@@ -18,6 +18,7 @@ const FIELDS: [string, string, string][] = [
   ["seconds", "second", "s"],
 ];
 
+/** Options for {@link humanizeDuration}. */
 export interface HumanizeOptions {
   /** Abbreviated form (`2d 3h` instead of `2 days, 3 hours`). */
   short?: boolean;
@@ -81,8 +82,11 @@ const REL_ORDER: [string, Intl.RelativeTimeFormatUnit][] = [
   ["seconds", "second"],
 ];
 
+/** Options for {@link formatRelative} / {@link fromNow}. */
 export interface RelativeOptions {
+  /** BCP-47 locale(s) passed to `Intl.RelativeTimeFormat`. */
   locale?: string | string[];
+  /** `"auto"` (default) allows "yesterday"/"tomorrow"; `"always"` forces "N units". */
   numeric?: "always" | "auto";
 }
 

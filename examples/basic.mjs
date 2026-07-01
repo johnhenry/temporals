@@ -1,79 +1,38 @@
-// Runnable smoke test against the built package.
+// A quick tour across the whole library. For per-feature depth, see the other
+// examples in this folder (range, recur, cron, intervals, business, humanize,
+// backoff, ics).
 //   node examples/basic.mjs
-//
-// On Node < 22 (no native Temporal) this installs the polyfill global; on
-// Node 22+ the native Temporal is used and this import is a harmless no-op shim.
 import "temporal-polyfill/global";
-import { range, chunks, windows, recur, seq, recurBuilder, Interval } from "../dist/index.js";
+import { range, recur, Schedule, Interval, IntervalSet, startOf } from "temporals";
+import { cron, describeCron } from "temporals/cron";
+import { usFederalHolidays, BusinessCalendar } from "temporals/business";
+import { humanizeDuration } from "temporals/humanize";
 
-const show = (label, it) => console.log(label, [...it].map(String).join(", "));
+const D = (s) => Temporal.PlainDate.from(s);
+const TZ = "America/New_York";
+const line = (label, v) => console.log(label.padEnd(26), v);
 
-// 1. A stepped range — weekdays only, first 5, via native-style iterator helpers.
-show(
-  "next 5 weekdays:",
-  range({ start: Temporal.Now.plainDateISO(), step: { days: 1 } })
-    .filter((d) => d.dayOfWeek <= 5)
-    .take(5),
-);
+// range → lazy Seq with iterator helpers
+line("next 3 weekdays:", range({ start: D("2026-01-01"), step: { days: 1 } }).filter((d) => d.dayOfWeek <= 5).take(3).toArray().map(String).join(", "));
 
-// 2. Month-end that does NOT drift (anchor-relative stepping).
-show(
-  "month steps from Jan 31:",
-  range({ start: Temporal.PlainDate.from("2026-01-31"), step: { months: 1 }, count: 4 }),
-);
+// recur → RRULE
+line("2nd Tuesday, 3×:", recur({ start: D("2026-01-01"), freq: "monthly", byWeekday: [{ weekday: "TU", nth: 2 }], count: 3 }).toArray().map(String).join(", "));
 
-// 3. Partition a quarter into weeks (intervals).
-show(
-  "weekly chunks:",
-  chunks({
-    start: Temporal.PlainDate.from("2026-01-01"),
-    end: Temporal.PlainDate.from("2026-02-01"),
-    by: { weeks: 1 },
-  }),
-);
+// cron → DST-correct fire times
+line("cron 9am weekdays:", cron("0 9 * * 1-5", { timeZone: TZ }).take(2).toArray().map((z) => z.toPlainDate().toString()).join(", "));
+line("describeCron:", describeCron("0 9 * * 1-5"));
 
-// 4. Sliding 7-day windows stepping by 2 days.
-show(
-  "sliding windows:",
-  windows({
-    start: Temporal.PlainDate.from("2026-01-01"),
-    end: Temporal.PlainDate.from("2026-01-10"),
-    size: { days: 7 },
-    step: { days: 2 },
-  }),
-);
+// Schedule → unified "when"
+line("Schedule.rule.next:", Schedule.rule({ start: D("2026-01-01"), freq: "weekly" }).next(D("2026-01-01")).toString());
 
-// 5. RRULE recurrence: the 2nd Tuesday of each month.
-show(
-  "2nd Tuesday monthly:",
-  recur({
-    start: Temporal.PlainDate.from("2026-01-01"),
-    freq: "monthly",
-    byWeekday: [{ weekday: "TU", nth: 2 }],
-    count: 4,
-  }),
-);
+// intervals + set algebra
+const free = IntervalSet.from([new Interval(D("2026-01-01"), D("2026-01-06"))]).difference(IntervalSet.from([new Interval(D("2026-01-02"), D("2026-01-03"))]));
+line("free = work − busy:", free.intervals.map((i) => i.toString()).join(", "));
 
-// 6. DST-correct zoned stepping (wall-clock stays at 09:00 across the boundary).
-show(
-  "zoned daily across DST:",
-  range({
-    start: Temporal.ZonedDateTime.from("2026-03-07T09:00[America/New_York]"),
-    step: { days: 1 },
-    count: 3,
-  }).map((z) => `${z.toPlainDate()} ${z.toPlainTime()} ${z.offset}`),
-);
+// business
+const cal = new BusinessCalendar({ holidays: usFederalHolidays() });
+line("business days in Jan:", cal.businessDaysBetween(D("2026-01-01"), D("2026-02-01")));
 
-// 7. Fluent builders.
-show(
-  "seq() builder:",
-  seq(Temporal.PlainDate.from("2026-01-01")).step({ days: 2 }).count(3),
-);
-console.log(
-  "recurBuilder RRULE:",
-  recurBuilder(Temporal.PlainDate.from("2026-01-01")).monthly().on({ weekday: "FR", nth: -1 }).count(3).toString(),
-);
-
-// 8. Interval value type.
-const q1 = Interval.from("2026-01-01/2026-04-01");
-console.log("interval:", q1.toString(), "| contains 2026-02-15:", q1.contains(Temporal.PlainDate.from("2026-02-15")));
+// humanize + calendar
+line("humanize:", humanizeDuration(Temporal.Duration.from({ hours: 2, minutes: 3 })));
+line("startOf week:", startOf(D("2026-01-01"), "week").toString());

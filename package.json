@@ -68,6 +68,8 @@
     "test": "node --import tsx --test test/*.test.ts",
     "test:example": "node --test examples/scheduler",
     "example": "node examples/scheduler/demo.mjs",
+    "examples": "for f in examples/*.mjs; do echo \"# $f\"; node \"$f\" >/dev/null || exit 1; done",
+    "docs": "typedoc",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
@@ -109,6 +111,7 @@
     "temporal-polyfill": "^1.0.1",
     "tsup": "^8.5.1",
     "tsx": "^4.22.4",
+    "typedoc": "^0.28.19",
     "typescript": "^6.0.3"
   }
 }

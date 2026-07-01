@@ -7,7 +7,7 @@ import { cronOccurrences, parseCron, type CronOptions } from "./cron.js";
  * the core `temporals` entry — so the core stays free of the cron parser.
  */
 
-export { cron, parseCron, type CronOptions, type ParsedCron } from "./cron.js";
+export { cron, parseCron, type CronOptions, type ParsedCron, type Field, type DayField } from "./cron.js";
 export { describeCron, cronToRule, ruleToCron } from "./cron-extra.js";
 
 /**

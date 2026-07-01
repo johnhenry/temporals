@@ -22,7 +22,14 @@ export type Overflow = "constrain" | "reject";
 export type Weekday = "MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU";
 
 /** A weekday, optionally constrained to the nth occurrence (e.g. `2TU`, `-1FR`). */
-export type WeekdaySpec = Weekday | { weekday: Weekday; nth?: number };
+export type WeekdaySpec =
+  | Weekday
+  | {
+      /** The weekday. */
+      weekday: Weekday;
+      /** The occurrence within the period (1-based; negative counts from the end). */
+      nth?: number;
+    };
 
 /** Recurrence frequency (RFC 5545 FREQ). */
 export type Frequency =

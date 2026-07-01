@@ -81,10 +81,12 @@ export class SeqBuilder<T extends TemporalPoint> implements Iterable<T> {
     });
   }
 
+  /** Iterate the resulting sequence. */
   [Symbol.iterator](): Iterator<T> {
     return this.points()[Symbol.iterator]();
   }
 
+  /** Materialise the resulting sequence into an array. */
   toArray(): T[] {
     return this.points().toArray();
   }
@@ -128,18 +130,22 @@ export class RecurBuilder<T extends TemporalPoint> implements Iterable<T> {
     this.#rule = { start, freq };
   }
 
+  /** Set frequency to daily. */
   daily(): this {
     this.#rule.freq = "daily";
     return this;
   }
+  /** Set frequency to weekly. */
   weekly(): this {
     this.#rule.freq = "weekly";
     return this;
   }
+  /** Set frequency to monthly. */
   monthly(): this {
     this.#rule.freq = "monthly";
     return this;
   }
+  /** Set frequency to yearly. */
   yearly(): this {
     this.#rule.freq = "yearly";
     return this;
@@ -203,10 +209,12 @@ export class RecurBuilder<T extends TemporalPoint> implements Iterable<T> {
     return recur(this.#rule);
   }
 
+  /** Iterate the resulting sequence. */
   [Symbol.iterator](): Iterator<T> {
     return this.points()[Symbol.iterator]();
   }
 
+  /** Materialise the resulting sequence into an array. */
   toArray(): T[] {
     return this.points().toArray();
   }

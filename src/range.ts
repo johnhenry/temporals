@@ -2,6 +2,7 @@ import type { DurationLike, Overflow, TemporalPoint } from "./types.js";
 import { add, cmp, scaleDuration } from "./internal.js";
 import { Seq } from "./seq.js";
 
+/** Options for {@link range}. */
 export interface RangeOptions<T extends TemporalPoint> {
   /** First point of the sequence (always included). */
   start: T;

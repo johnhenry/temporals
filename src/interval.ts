@@ -26,7 +26,9 @@ export type AllenRelation =
  * Temporal has no native interval type; this fills that gap.
  */
 export class Interval<T extends TemporalPoint = TemporalPoint> {
+  /** Inclusive lower bound. */
   readonly start: T;
+  /** Exclusive upper bound. */
   readonly end: T;
 
   constructor(start: T, end: T) {
@@ -112,6 +114,7 @@ export class Interval<T extends TemporalPoint = TemporalPoint> {
     return `${this.start.toString()}/${this.end.toString()}`;
   }
 
+  /** Serialise as the ISO interval string (for `JSON.stringify`). */
   toJSON(): string {
     return this.toString();
   }

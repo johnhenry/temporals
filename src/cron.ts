@@ -31,8 +31,11 @@ export interface CronOptions {
   dstOverlap?: "first" | "second";
 }
 
-interface Field {
+/** A parsed cron field: the set of matching values, and whether it was a wildcard. */
+export interface Field {
+  /** The concrete values this field matches. */
   values: Set<number>;
+  /** True when the field was `*` or `?`. */
   wildcard: boolean;
 }
 
@@ -45,18 +48,31 @@ export interface DayField extends Field {
   /** dom: last weekday of the month (`LW`). */
   lastWeekday?: boolean;
   /** dow: the nth occurrence of a weekday (`d#n`). */
-  nthWeekday?: { wd: number; n: number }[];
+  nthWeekday?: {
+    /** Weekday, Sun=0 … Sat=6. */
+    wd: number;
+    /** Occurrence within the month (1–5). */
+    n: number;
+  }[];
   /** dow: the last occurrence of a weekday in the month (`dL`). */
   lastDow?: number[];
 }
 
+/** A fully parsed cron expression: one matcher per field. */
 export interface ParsedCron {
+  /** Seconds field (0–59); all-zero when the expression has no seconds field. */
   second: Field;
+  /** Minutes field (0–59). */
   minute: Field;
+  /** Hours field (0–23). */
   hour: Field;
+  /** Day-of-month field (1–31, incl. Quartz `L`/`W`). */
   dom: DayField;
+  /** Month field (1–12). */
   month: Field;
+  /** Day-of-week field (0–6, Sun=0, incl. Quartz `L`/`#`). */
   dow: DayField;
+  /** Whether the expression included a leading seconds field. */
   hasSeconds: boolean;
 }
 

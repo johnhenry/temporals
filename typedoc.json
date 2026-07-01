@@ -1,0 +1,24 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "temporals",
+  "entryPoints": [
+    "src/index.ts",
+    "src/cron-entry.ts",
+    "src/business.ts",
+    "src/humanize.ts",
+    "src/ics.ts"
+  ],
+  "out": "docs",
+  "readme": "README.md",
+  "excludeInternal": true,
+  "excludePrivate": true,
+  "categorizeByGroup": true,
+  "navigationLinks": {
+    "GitHub": "https://github.com/johnhenry/temporals"
+  },
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": true
+  }
+}

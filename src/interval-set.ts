@@ -10,6 +10,7 @@ import { getTemporal } from "./temporal.js";
  * availability / free-busy work: union, intersection, difference, and gaps.
  */
 export class IntervalSet<T extends TemporalPoint = TemporalPoint> implements Iterable<Interval<T>> {
+  /** The normalized (sorted, merged, disjoint) intervals. */
   readonly intervals: readonly Interval<T>[];
 
   private constructor(intervals: Interval<T>[]) {
@@ -33,14 +34,17 @@ export class IntervalSet<T extends TemporalPoint = TemporalPoint> implements Ite
     return new IntervalSet(merged);
   }
 
+  /** The empty set. */
   static empty<T extends TemporalPoint>(): IntervalSet<T> {
     return new IntervalSet<T>([]);
   }
 
+  /** True when the set covers nothing. */
   get isEmpty(): boolean {
     return this.intervals.length === 0;
   }
 
+  /** Iterate the intervals in order. */
   [Symbol.iterator](): Iterator<Interval<T>> {
     return this.intervals[Symbol.iterator]();
   }

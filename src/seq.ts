@@ -22,6 +22,7 @@ export class Seq<T> implements Iterable<T> {
     };
   }
 
+  /** Produce a fresh iterator (the sequence is re-iterable). */
   [Symbol.iterator](): Iterator<T> {
     return this.#factory();
   }
@@ -44,6 +45,7 @@ export class Seq<T> implements Iterable<T> {
 
   // --- lazy transforms -----------------------------------------------------
 
+  /** Lazily transform each value (index provided). */
   map<U>(fn: (value: T, index: number) => U): Seq<U> {
     const self = this;
     return new Seq<U>(function* () {
@@ -52,6 +54,7 @@ export class Seq<T> implements Iterable<T> {
     });
   }
 
+  /** Keep only values for which `pred` is true. */
   filter(pred: (value: T, index: number) => boolean): Seq<T> {
     const self = this;
     return new Seq<T>(function* () {
@@ -60,6 +63,7 @@ export class Seq<T> implements Iterable<T> {
     });
   }
 
+  /** Map each value to an iterable and flatten the results. */
   flatMap<U>(fn: (value: T, index: number) => Iterable<U>): Seq<U> {
     const self = this;
     return new Seq<U>(function* () {
@@ -68,6 +72,7 @@ export class Seq<T> implements Iterable<T> {
     });
   }
 
+  /** The first `n` values (fewer if the sequence is shorter). Bounds infinite sequences. */
   take(n: number): Seq<T> {
     const self = this;
     return new Seq<T>(function* () {
@@ -80,6 +85,7 @@ export class Seq<T> implements Iterable<T> {
     });
   }
 
+  /** Skip the first `n` values, yielding the rest. */
   drop(n: number): Seq<T> {
     const self = this;
     return new Seq<T>(function* () {
@@ -91,6 +97,7 @@ export class Seq<T> implements Iterable<T> {
     });
   }
 
+  /** Yield values until `pred` is first false, then stop. */
   takeWhile(pred: (value: T, index: number) => boolean): Seq<T> {
     const self = this;
     return new Seq<T>(function* () {
@@ -102,6 +109,7 @@ export class Seq<T> implements Iterable<T> {
     });
   }
 
+  /** Skip leading values while `pred` is true, then yield the rest. */
   dropWhile(pred: (value: T, index: number) => boolean): Seq<T> {
     const self = this;
     return new Seq<T>(function* () {
@@ -127,6 +135,7 @@ export class Seq<T> implements Iterable<T> {
     });
   }
 
+  /** Append one or more iterables after this sequence. */
   concat(...others: Iterable<T>[]): Seq<T> {
     const self = this;
     return new Seq<T>(function* () {
@@ -151,15 +160,18 @@ export class Seq<T> implements Iterable<T> {
 
   // --- terminals -----------------------------------------------------------
 
+  /** Materialise into an array. Never call on an unbounded sequence. */
   toArray(): T[] {
     return [...this];
   }
 
+  /** Run `fn` for each value (index provided). */
   forEach(fn: (value: T, index: number) => void): void {
     let i = 0;
     for (const x of this) fn(x, i++);
   }
 
+  /** Fold the sequence to a single accumulated value. */
   reduce<A>(fn: (acc: A, value: T, index: number) => A, initial: A): A {
     let acc = initial;
     let i = 0;
@@ -167,29 +179,34 @@ export class Seq<T> implements Iterable<T> {
     return acc;
   }
 
+  /** The first value matching `pred`, or `undefined`. */
   find(pred: (value: T, index: number) => boolean): T | undefined {
     let i = 0;
     for (const x of this) if (pred(x, i++)) return x;
     return undefined;
   }
 
+  /** Whether any value matches `pred` (short-circuits). */
   some(pred: (value: T, index: number) => boolean): boolean {
     let i = 0;
     for (const x of this) if (pred(x, i++)) return true;
     return false;
   }
 
+  /** Whether every value matches `pred` (short-circuits). */
   every(pred: (value: T, index: number) => boolean): boolean {
     let i = 0;
     for (const x of this) if (!pred(x, i++)) return false;
     return true;
   }
 
+  /** The first value, or `undefined` if empty. */
   first(): T | undefined {
     for (const x of this) return x;
     return undefined;
   }
 
+  /** The value at `index` (0-based), or `undefined`. */
   at(index: number): T | undefined {
     if (index < 0) return undefined;
     let i = 0;

@@ -3,8 +3,11 @@ import { add, cmp } from "./internal.js";
 import { Interval } from "./interval.js";
 import { Seq } from "./seq.js";
 
+/** Options for {@link chunks}. */
 export interface ChunksOptions<T extends TemporalPoint> {
+  /** Start of the span to partition (inclusive). */
   start: T;
+  /** End of the span to partition (exclusive). */
   end: T;
   /** Width of each chunk. */
   by: DurationLike;
@@ -41,8 +44,11 @@ export function chunks<T extends TemporalPoint>(
   });
 }
 
+/** Options for {@link windows}. */
 export interface WindowsOptions<T extends TemporalPoint> {
+  /** Start of the span (inclusive). */
   start: T;
+  /** End of the span (exclusive). */
   end: T;
   /** Width of each window. */
   size: DurationLike;

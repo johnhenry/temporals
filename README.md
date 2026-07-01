@@ -46,6 +46,16 @@ npm install temporals
 npm install temporal-polyfill
 ```
 
+## Documentation
+
+- **API reference** — a complete, generated reference for every export (all
+  subpaths) lives at **https://johnhenry.github.io/temporals/** (built from JSDoc
+  via TypeDoc; run `npm run docs` to generate it locally into `docs/`).
+- **Examples** — runnable, per-feature programs in [`examples/`](examples)
+  (`range`, `recur`, `cron`, `intervals`, `business`, `humanize`, `backoff`,
+  `ics`, plus a reference scheduler). `npm run examples` runs them all.
+- **This README** is the guided tour below.
+
 ## API
 
 ### `range(options): Seq<T>`

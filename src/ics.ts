@@ -12,9 +12,13 @@ import { getTemporal } from "./temporal.js";
  */
 
 export interface ICSEvent<T extends TemporalPoint = TemporalPoint> {
+  /** Unique identifier (UID). */
   uid?: string;
+  /** Event title (SUMMARY). */
   summary?: string;
+  /** Event start (DTSTART). */
   start: T;
+  /** Event end (DTEND). */
   end?: T;
   /** RRULE string or a structured rule. */
   rrule?: string | RecurRule<T>;

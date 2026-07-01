@@ -37,7 +37,7 @@ function applyObserved(date: PlainDate, observed: Observed): PlainDate {
 }
 
 /** A rule that yields a holiday's date in a given year, or null if it doesn't occur. */
-export type HolidayRule = (year: number) => PlainDate | null;
+export type HolidayRule = (year: number) => Temporal.PlainDate | null;
 
 /** A holiday on a fixed month/day (e.g. Jan 1), optionally shifted off weekends. */
 export function fixedHoliday(month: number, day: number, opts: { observed?: Observed } = {}): HolidayRule {
@@ -110,6 +110,7 @@ export class Holidays {
     this.rules = rules;
   }
 
+  /** Build a holiday set from rules. */
   static of(...rules: HolidayRule[]): Holidays {
     return new Holidays(rules);
   }
@@ -171,6 +172,7 @@ export class BusinessCalendar {
     return anyD.toPlainDate ? anyD.toPlainDate() : (date as PlainDate);
   }
 
+  /** Whether `date` is a working day (not a weekend, not a holiday). */
   isBusinessDay(date: PlainDate | ZDT | Temporal.PlainDateTime): boolean {
     const d = this.toDate(date);
     if (this.weekend.has(d.dayOfWeek)) return false;
@@ -294,7 +296,9 @@ export function businessDuration(start: ZDT, end: ZDT, hours: WorkingHours): Tem
 
 /** A schedulable participant: their working hours and (optional) busy blocks. */
 export interface Participant {
+  /** The participant's working hours (evaluated in their own time zone). */
   hours: WorkingHours;
+  /** Already-booked intervals to treat as unavailable. */
   busy?: IntervalSet<ZDT>;
 }
 
