@@ -38,6 +38,12 @@ export {
 // Unified schedule interface (cron lives in the `temporals/cron` subpath)
 export { Schedule } from "./schedule.js";
 
+// Backoff / retry delay sequences
+export { backoff, type BackoffOptions } from "./backoff.js";
+
+// DST / time-zone transition helpers
+export { isDST, nextTransition, previousTransition, transitionsBetween } from "./dst.js";
+
 // Temporal resolution (only needed by helpers that construct values)
 export { getTemporal, configureTemporal } from "./temporal.js";
 

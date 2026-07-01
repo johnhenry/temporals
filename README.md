@@ -229,6 +229,20 @@ formatRelative(from, to);                         // "in 5 days" (via Intl.Relat
 fromNow(someDate);                                // "3 days ago"
 ```
 
+### Backoff & DST helpers
+
+```ts
+import { backoff, isDST, nextTransition, transitionsBetween } from "temporals";
+
+backoff({ base: 100, max: 5000, jitter: "equal", attempts: 6 }); // Seq<Duration> of retry delays
+isDST(zdt);                    // heuristic (offset vs standard)
+nextTransition(zdt);           // next UTC-offset change, or null
+transitionsBetween(a, b);      // all transitions in a range
+```
+
+Natural-language date parsing ("next Tuesday") is intentionally **not** in core —
+it lives in a separate extension that wraps `temporals`.
+
 ## Supported point types
 
 `PlainDate`, `PlainDateTime`, `ZonedDateTime` (DST-correct), `PlainYearMonth`,
