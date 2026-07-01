@@ -123,11 +123,49 @@ recurBuilder(start).monthly().on({ weekday: "FR", nth: -1 }).count(3).toArray();
 recurBuilder(start).weekly().every(2).on("MO", "WE").toString(); // -> RRULE string
 ```
 
+### `cron(expr, options): Seq<ZonedDateTime>` — Temporal-native cron
+
+Cron is a *matching* schedule ("fire when the wall clock matches"), evaluated in
+an explicit time zone with **explicit, correct DST behaviour** — the main
+advantage over `Date`-based cron libraries.
+
+```ts
+cron("0 9 * * 1-5", { timeZone: "America/New_York" }).take(3).toArray(); // next 3 weekday 9am fire times
+```
+
+Faithful to cron semantics (and different from RRULE): clock-aligned rather than
+anchored to a start (`*/15` → `:00 :15 :30 :45`), and the day-of-month /
+day-of-week **OR quirk** (when both are restricted, either matches). Fields
+support `*`, `?`, ranges, steps, lists, and names (`JAN`, `MON`, …); `@daily`,
+`@hourly`, etc. macros; and an optional leading seconds field (6-field form).
+`L`/`W`/`#` are not yet supported.
+
+DST policy is explicit: `dstGap: "fire"` (default, shift forward) or `"skip"`;
+`dstOverlap: "first"` (default) or `"second"`. Also `parseCron`, `describeCron`
+(humaniser), and best-effort `cronToRule` / `ruleToCron` converters (lossy — they
+return `null` rather than guess).
+
+### `Schedule` — one interface for cron, RRULE, and ranges
+
+A `Schedule` is the unifying answer to "when does this happen?" — pure, never
+executes. Cron, `recur`, and `range` all compile to it.
+
+```ts
+const s = Schedule.cron("0 9 * * 1-5", { timeZone: "America/New_York" });
+s.next(now);              // next fire strictly after `now`
+s.nextN(now, 5);          // next 5
+s.between(start, end);    // occurrences in [start, end)
+
+Schedule.rule({ start, freq: "monthly", byWeekday: [{ weekday: "TU", nth: 2 }] });
+Schedule.range({ start, step: { days: 1 } });
+```
+
 ## Supported point types
 
 `PlainDate`, `PlainDateTime`, `ZonedDateTime` (DST-correct), `PlainYearMonth`,
 `PlainTime`, and `Instant` for `range`/`chunks`/`windows`. Recurrence
 (`recur`) requires a date-bearing start (`PlainDate`/`PlainDateTime`/`ZonedDateTime`).
+`cron` always produces `ZonedDateTime`.
 
 ## License
 
