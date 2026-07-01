@@ -633,10 +633,10 @@ function intList(value: string): number[] {
 }
 
 /**
- * Build a {@link recur} sequence from an RFC 5545 RRULE string plus a DTSTART
- * value, e.g. `recurFromString("FREQ=MONTHLY;BYDAY=2TU;COUNT=12", start)`.
+ * Parse an RFC 5545 RRULE string plus a DTSTART value into a {@link RecurRule}
+ * object (so callers can attach `include`/`exclude`/DST policy before running).
  */
-export function recurFromString<T extends TemporalPoint>(rrule: string, dtstart: T): Seq<T> {
+export function ruleFromString<T extends TemporalPoint>(rrule: string, dtstart: T): RecurRule<T> {
   const body = rrule.replace(/^RRULE:/i, "");
   const rule: RecurRule<T> = { start: dtstart, freq: "daily" };
   let freqSeen = false;
@@ -701,7 +701,15 @@ export function recurFromString<T extends TemporalPoint>(rrule: string, dtstart:
     }
   }
   if (!freqSeen) throw new RangeError("temporals: RRULE is missing FREQ");
-  return recur(rule);
+  return rule;
+}
+
+/**
+ * Build a {@link recur} sequence from an RFC 5545 RRULE string plus a DTSTART
+ * value, e.g. `recurFromString("FREQ=MONTHLY;BYDAY=2TU;COUNT=12", start)`.
+ */
+export function recurFromString<T extends TemporalPoint>(rrule: string, dtstart: T): Seq<T> {
+  return recur(ruleFromString(rrule, dtstart));
 }
 
 /** Serialise a rule's recurrence parameters back to an RFC 5545 RRULE string. */

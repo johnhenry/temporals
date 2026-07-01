@@ -23,7 +23,18 @@ export interface HumanizeOptions {
   short?: boolean;
   /** Keep at most this many (largest) units. */
   max?: number;
+  /**
+   * Locale for localized output. When set and the runtime provides
+   * `Intl.DurationFormat` (Node 24+/modern browsers), formatting is localized;
+   * otherwise it falls back to the built-in English rendering.
+   */
+  locale?: string | string[];
 }
+
+type DurationFormatCtor = new (
+  locales?: string | string[],
+  options?: { style?: "long" | "short" | "narrow" | "digital" },
+) => { format(input: Record<string, number>): string };
 
 /**
  * A human-readable duration, reading the units present on the `Duration` as-is.
@@ -31,8 +42,24 @@ export interface HumanizeOptions {
  * `1 hour, 30 minutes`.
  */
 export function humanizeDuration(duration: Temporal.Duration, opts: HumanizeOptions = {}): string {
-  const { short = false, max = Infinity } = opts;
+  const { short = false, max = Infinity, locale } = opts;
   const d = duration as unknown as Record<string, number>;
+
+  // Localized path (opt-in): use Intl.DurationFormat when a locale is requested
+  // and the runtime supports it; otherwise fall through to English.
+  const DF = (Intl as unknown as { DurationFormat?: DurationFormatCtor }).DurationFormat;
+  if (locale && DF) {
+    const input: Record<string, number> = {};
+    let kept = 0;
+    for (const [field] of FIELDS) {
+      const v = d[field] ?? 0;
+      if (v === 0) continue;
+      input[field] = v;
+      if (++kept >= max) break;
+    }
+    return new DF(locale, { style: short ? "narrow" : "long" }).format(input);
+  }
+
   const parts: string[] = [];
   for (const [field, long, abbr] of FIELDS) {
     const v = d[field] ?? 0;

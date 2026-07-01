@@ -43,6 +43,16 @@
         "types": "./dist/humanize.d.cts",
         "default": "./dist/humanize.cjs"
       }
+    },
+    "./ics": {
+      "import": {
+        "types": "./dist/ics.d.ts",
+        "default": "./dist/ics.js"
+      },
+      "require": {
+        "types": "./dist/ics.d.cts",
+        "default": "./dist/ics.cjs"
+      }
     }
   },
   "main": "./dist/index.cjs",

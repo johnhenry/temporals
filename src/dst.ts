@@ -14,14 +14,16 @@ function offsetAtMonth(zdt: ZDT, month: number): number {
 }
 
 /**
- * Whether `zdt` is in daylight saving time — heuristically, whether its offset
- * is greater than the zone's standard (winter) offset, estimated from January
- * vs July. Correct for the common +1h-in-summer zones (both hemispheres);
- * zones with no DST return `false`. (Negative-DST zones like Europe/Dublin are
- * the known heuristic edge case.)
+ * Whether `zdt` is in daylight saving time — defined precisely as: its offset
+ * exceeds the zone's minimum (standard) offset across that calendar year. This
+ * is correct for the standard "+1h in summer" zones in both hemispheres and
+ * returns `false` for zones without DST. Zones modelled with *negative* DST
+ * (e.g. Europe/Dublin, where winter is the shifted period) are inherently
+ * ambiguous under any single definition — treat the result there as advisory.
  */
 export function isDST(zdt: ZDT): boolean {
-  const standard = Math.min(offsetAtMonth(zdt, 1), offsetAtMonth(zdt, 7));
+  let standard = Infinity;
+  for (let m = 1; m <= 12; m++) standard = Math.min(standard, offsetAtMonth(zdt, m));
   return zdt.offsetNanoseconds > standard;
 }
 

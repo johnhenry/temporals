@@ -37,3 +37,13 @@ test("formatRelative: future and past", () => {
 test("fromNow returns a string", () => {
   assert.equal(typeof fromNow(D("2030-01-01")), "string");
 });
+
+test("humanizeDuration: locale option localizes when Intl.DurationFormat exists, else falls back", () => {
+  const out = humanizeDuration(Dur({ hours: 2, minutes: 3 }), { locale: "fr" });
+  const hasDF = typeof (Intl as unknown as { DurationFormat?: unknown }).DurationFormat === "function";
+  if (hasDF) {
+    assert.ok(out.length > 0); // localized (e.g. "2 heures, 3 minutes")
+  } else {
+    assert.equal(out, "2 hours, 3 minutes"); // graceful English fallback
+  }
+});

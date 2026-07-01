@@ -22,6 +22,7 @@ export { chunks, windows, type ChunksOptions, type WindowsOptions } from "./inte
 export {
   recur,
   recurFromString,
+  ruleFromString,
   formatRule,
   type RecurRule,
   type RecurFn,

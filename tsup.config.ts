@@ -6,6 +6,7 @@ export default defineConfig({
     cron: "src/cron-entry.ts",
     business: "src/business.ts",
     humanize: "src/humanize.ts",
+    ics: "src/ics.ts",
   },
   format: ["esm", "cjs"],
   dts: true,
