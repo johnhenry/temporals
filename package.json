@@ -1,0 +1,72 @@
+{
+  "name": "temporal-seq",
+  "version": "0.1.0",
+  "description": "Lazy sequences, ranges, intervals, and RRULE recurrence built on the TC39 Temporal API.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "temporal",
+    "date",
+    "datetime",
+    "range",
+    "date-range",
+    "interval",
+    "recurrence",
+    "rrule",
+    "iterator",
+    "sequence"
+  ],
+  "author": "John Henry <john@iamjohnhenry.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iamjohnhenry/temporal-seq.git"
+  },
+  "homepage": "https://github.com/iamjohnhenry/temporal-seq#readme",
+  "bugs": {
+    "url": "https://github.com/iamjohnhenry/temporal-seq/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {
+    "temporal-polyfill": ">=0.2.0"
+  },
+  "peerDependenciesMeta": {
+    "temporal-polyfill": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "temporal-polyfill": "^1.0.1",
+    "tsup": "^8.5.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}
