@@ -1,6 +1,6 @@
 {
   "name": "temporals",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Lazy sequences, ranges, intervals, and RRULE recurrence built on the TC39 Temporal API.",
   "type": "module",
   "exports": {
