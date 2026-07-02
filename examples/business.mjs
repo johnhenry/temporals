@@ -26,11 +26,18 @@ console.log("Working time Fri 15:00 → Mon 11:00:", humanizeDuration(businessDu
 const nights = new WorkingHours({ windows: [["22:00", "06:00"]] });
 console.log("Open at 02:00 (overnight)?", nights.isOpen(Z("2026-01-06T02:00")));
 
-// Mutual availability across two people.
+// Mutual availability across two people in different zones.
 const within = new Interval(Z("2026-01-05T00:00"), Z("2026-01-06T00:00"));
-const alice = { hours, busy: IntervalSet.from([new Interval(Z("2026-01-05T10:00"), Z("2026-01-05T12:00"))]) };
-const bob = { hours, busy: IntervalSet.from([new Interval(Z("2026-01-05T14:00"), Z("2026-01-05T15:00"))]) };
-console.log("Meeting slots ≥ 90m:");
-for (const s of meetingSlots({ participants: [alice, bob], within, duration: { minutes: 90 } })) {
-  console.log("  ", s.start.toPlainTime().toString().slice(0, 5), "–", s.end.toPlainTime().toString().slice(0, 5));
+const alice = { hours, timeZone: "America/New_York", busy: IntervalSet.from([new Interval(Z("2026-01-05T10:00"), Z("2026-01-05T12:00"))]) };
+const bob = { hours, timeZone: "America/Los_Angeles" };
+const slots = meetingSlots({ participants: [alice, bob], within, duration: { minutes: 60 } });
+// Enriched output makes ranking trivial — e.g. prefer slots that aren't late for anyone.
+const ranked = [...slots].sort((a, b) => a.latestLocalHour - b.latestLocalHour);
+console.log("Meeting slots (ranked, ≥ 60m):");
+for (const s of ranked) {
+  console.log(
+    "  ", s.start.toPlainTime().toString().slice(0, 5),
+    "| locals:", s.localStarts.map((t) => t.toString().slice(0, 5)).join(", "),
+    "| latestLocalHour:", s.latestLocalHour,
+  );
 }

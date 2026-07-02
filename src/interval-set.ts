@@ -133,3 +133,30 @@ export class IntervalSet<T extends TemporalPoint = TemporalPoint> implements Ite
     return this.intervals.map((iv) => iv.toString()).join(", ");
   }
 }
+
+/**
+ * Every pair of overlapping intervals in a collection (half-open; abutting
+ * intervals do not conflict). Detection only — deciding what to *do* about a
+ * clash (reject / bump / waitlist) is a product policy left to the caller.
+ * Runs in O(n log n + k) via a start-ordered sweep.
+ *
+ * ```ts
+ * for (const [a, b] of conflicts(bookings)) warn(`${a} clashes with ${b}`);
+ * ```
+ */
+export function conflicts<T extends TemporalPoint>(
+  intervals: Interval<T>[],
+): [Interval<T>, Interval<T>][] {
+  const sorted = intervals
+    .filter((iv) => !iv.isEmpty)
+    .sort((a, b) => cmp(a.start, b.start) || cmp(a.end, b.end));
+  const out: [Interval<T>, Interval<T>][] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    for (let j = i + 1; j < sorted.length; j++) {
+      // sorted by start, so once j starts at/after i ends, no later j overlaps i.
+      if (cmp(sorted[j]!.start, sorted[i]!.end) >= 0) break;
+      out.push([sorted[i]!, sorted[j]!]);
+    }
+  }
+  return out;
+}

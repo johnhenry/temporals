@@ -1,7 +1,7 @@
 // Interval algebra + IntervalSet (union / intersection / difference / gaps).
 //   node examples/intervals.mjs
 import "temporal-polyfill/global";
-import { Interval, IntervalSet } from "temporals";
+import { Interval, IntervalSet, conflicts } from "temporals";
 
 const D = (n) => Temporal.PlainDate.from(`2026-01-0${n}`);
 const iv = (a, b) => new Interval(D(a), D(b));
@@ -28,3 +28,7 @@ show("gaps within [1,9):", a.gaps(iv(1, 9)));
 const work = IntervalSet.from([iv(1, 6)]);
 const busy = IntervalSet.from([iv(2, 3), iv(4, 5)]);
 show("free = work − busy:", work.difference(busy));
+
+// Conflict detection: which bookings collide? (detection only; policy is yours)
+const pairs = conflicts([iv(1, 4), iv(2, 5), iv(6, 8), iv(3, 7)]);
+console.log("conflicting pairs:", pairs.map(([a, b]) => `${a} × ${b}`).join(", "));

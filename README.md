@@ -114,6 +114,9 @@ Also supported:
 - Month/year stepping is **calendar-aware** (correct across Hebrew leap years,
   Islamic, Persian, … — see Scope & limitations).
 - Impossible rules **throw** rather than silently stopping.
+- **`splitSeries(rule, at)`** → `{ before, after }` for "this and following"
+  edits — divides `count`, partitions EXDATE/RDATE, so the two halves reproduce
+  the original. Edit `after` to change this-and-following instances.
 
 `recur.fromString(...)`, `ruleFromString(...)`, and `formatRule(rule)` provide
 RRULE-string interop; the `temporals/ics` subpath adds full `.ics` import/export.
@@ -213,6 +216,8 @@ import { Interval, IntervalSet } from "temporals";
 
 const free = work.difference(busy);   // union / intersection / difference / gaps
 free.totalDuration();                 // summed coverage
+
+conflicts(bookings);                  // [ [a, b], … ] overlapping pairs (detection; policy is yours)
 ```
 
 See [`examples/availability.mjs`](examples/availability.mjs) — working hours −
@@ -234,14 +239,20 @@ cal.nthBusinessDay(2026, 1, -1);       // last business day of the month (payrol
 const hours = new WorkingHours({ windows: [["22:00", "06:00"]], calendar: cal }); // overnight OK
 businessDuration(start, end, hours);   // elapsed working time (skips weekends/holidays/off-hours)
 
-// Mutual availability across people (each in their own zone):
-meetingSlots({ participants: [alice, bob], within, duration: { minutes: 30 } });
+// Mutual availability across people, each in their own zone:
+const slots = meetingSlots({
+  participants: [{ hours, timeZone: "America/New_York" }, { hours, timeZone: "America/Los_Angeles" }],
+  within, duration: { minutes: 30 },
+});
+// Each slot carries per-participant local times, so ranking is a one-liner:
+slots.sort((a, b) => a.latestLocalHour - b.latestLocalHour); // "not too late for anyone"
 ```
 
 Holiday rules reuse the same nth-weekday logic as RRULE (Thanksgiving *is*
 `nthWeekdayHoliday(11, "TH", 4)`); `easterHoliday(-2)` is Good Friday. `observed`
 supports `"us"` / `"uk"` weekend-shift styles. `meetingSlots` is the availability
-substrate — ranking by preference/fairness is left to the caller.
+substrate — it hands you `localStarts` / `earliestLocalHour` / `latestLocalHour`
+per slot so *ranking* is trivial, but the ranking *policy* is yours.
 
 ### `temporals/humanize` — durations & relative time
 

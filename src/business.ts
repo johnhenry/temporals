@@ -294,46 +294,81 @@ export function businessDuration(start: ZDT, end: ZDT, hours: WorkingHours): Tem
   return hours.intervalsBetween(start, end).totalDuration();
 }
 
-/** A schedulable participant: their working hours and (optional) busy blocks. */
+/** A schedulable participant: their working hours, zone, and (optional) busy blocks. */
 export interface Participant {
-  /** The participant's working hours (evaluated in their own time zone). */
+  /** The participant's working hours (evaluated in their `timeZone`). */
   hours: WorkingHours;
+  /** The participant's IANA zone. Defaults to the `within` window's zone. */
+  timeZone?: string;
   /** Already-booked intervals to treat as unavailable. */
   busy?: IntervalSet<ZDT>;
 }
 
 /**
+ * A candidate meeting window, enriched so ranking is trivial for the caller.
+ * `start`/`end` mirror `interval` for convenience.
+ */
+export interface MeetingSlot {
+  /** The candidate window. */
+  interval: Interval<ZDT>;
+  /** Window start, in the `within` window's zone (mirrors `interval.start`). */
+  start: ZDT;
+  /** Window end, in the `within` window's zone (mirrors `interval.end`). */
+  end: ZDT;
+  /** The slot's start as a wall-clock time in each participant's zone (participant order). */
+  localStarts: Temporal.PlainTime[];
+  /** Earliest local start hour across participants — for "not too early for anyone" scoring. */
+  earliestLocalHour: number;
+  /** Latest local start hour across participants — for "not too late for anyone" scoring. */
+  latestLocalHour: number;
+}
+
+/**
  * Candidate meeting windows within `within` during which **every** participant
  * is both working and free, and which are at least `duration` long — earliest
- * first. Timezones compose automatically (each participant's hours are in their
- * own zone; comparison is by instant). This is the availability substrate;
- * ranking by preference/fairness is left to the caller.
+ * first. Each participant's hours are evaluated in their own zone; comparison is
+ * by instant. Slots come enriched with per-participant local times so callers
+ * can rank by preference/fairness (that policy is deliberately left to them).
  */
 export function meetingSlots(opts: {
   participants: Participant[];
   within: Interval<ZDT>;
   duration: DurationLike;
   limit?: number;
-}): Interval<ZDT>[] {
+}): MeetingSlot[] {
   const { participants, within, duration, limit = Infinity } = opts;
   if (participants.length === 0) return [];
+  const defaultTz = within.start.timeZoneId;
 
   let common: IntervalSet<ZDT> | undefined;
   for (const p of participants) {
+    const tz = p.timeZone ?? defaultTz;
     const free = p.hours
-      .intervalsBetween(within.start, within.end)
+      .intervalsBetween(within.start.withTimeZone(tz), within.end.withTimeZone(tz))
       .difference(p.busy ?? IntervalSet.empty<ZDT>());
     common = common ? common.intersection(free) : free;
   }
   if (!common) return [];
 
   const neededMs = within.start.add(duration).epochMilliseconds - within.start.epochMilliseconds;
-  const out: Interval<ZDT>[] = [];
+  const out: MeetingSlot[] = [];
   for (const iv of common) {
-    if (iv.end.epochMilliseconds - iv.start.epochMilliseconds >= neededMs) {
-      out.push(iv);
-      if (out.length >= limit) break;
-    }
+    if (iv.end.epochMilliseconds - iv.start.epochMilliseconds < neededMs) continue;
+    // Normalise endpoints to the window's zone so `start`/`end` are predictable
+    // (the intersection can otherwise inherit any participant's zone).
+    const start = iv.start.withTimeZone(defaultTz);
+    const end = iv.end.withTimeZone(defaultTz);
+    const localStarts = participants.map((p) => start.withTimeZone(p.timeZone ?? defaultTz).toPlainTime());
+    const hours = localStarts.map((t) => t.hour);
+    out.push({
+      interval: new Interval<ZDT>(start, end),
+      start,
+      end,
+      localStarts,
+      earliestLocalHour: Math.min(...hours),
+      latestLocalHour: Math.max(...hours),
+    });
+    if (out.length >= limit) break;
   }
   return out;
 }

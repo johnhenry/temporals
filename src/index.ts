@@ -3,7 +3,7 @@ export { Seq } from "./seq.js";
 
 // Interval value type + algebra
 export { Interval, type AllenRelation } from "./interval.js";
-export { IntervalSet } from "./interval-set.js";
+export { IntervalSet, conflicts } from "./interval-set.js";
 
 // Calendar rounding & bucketing
 export {
@@ -23,6 +23,7 @@ export {
   recur,
   recurFromString,
   ruleFromString,
+  splitSeries,
   formatRule,
   type RecurRule,
   type RecurFn,

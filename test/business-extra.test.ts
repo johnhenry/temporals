@@ -57,3 +57,22 @@ test("meetingSlots: mutual availability across participants", () => {
     ["12:00-14:00", "15:00-17:00"], // 09:00-10:00 (1h) too short for 90m
   );
 });
+
+test("meetingSlots: enriched output ranks trivially across time zones", () => {
+  const hours = new WorkingHours({ windows: [["09:00", "17:00"]] }); // no calendar → every day
+  const within = new Interval(Z("2026-01-05T00:00"), Z("2026-01-06T00:00")); // Monday, NY frame
+  const ny = { hours, timeZone: "America/New_York" };
+  const la = { hours, timeZone: "America/Los_Angeles" };
+
+  const slots = meetingSlots({ participants: [ny, la], within, duration: { hours: 1 } });
+  // NY 9–17 ∩ LA 9–17 (= NY 12–20) → common NY 12:00–17:00
+  assert.equal(slots.length, 1);
+  assert.equal(slots[0]!.start.toPlainTime().toString(), "12:00:00"); // NY frame
+  // local starts per participant make ranking trivial
+  assert.deepEqual(slots[0]!.localStarts.map((t) => t.toString().slice(0, 5)), ["12:00", "09:00"]);
+  assert.equal(slots[0]!.earliestLocalHour, 9); // LA
+  assert.equal(slots[0]!.latestLocalHour, 12); // NY
+  // e.g. rank by "not too late for anyone": sort ascending by latestLocalHour
+  const ranked = [...slots].sort((x, y) => x.latestLocalHour - y.latestLocalHour);
+  assert.equal(ranked[0]!.latestLocalHour, 12);
+});

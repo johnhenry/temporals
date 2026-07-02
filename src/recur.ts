@@ -603,6 +603,55 @@ export function recur<T extends TemporalPoint>(rule: RecurRule<T>): Seq<T> {
   return new Seq<T>(() => postProcess(source(), rule));
 }
 
+/**
+ * Split a recurring series at an occurrence — the rule algebra behind a
+ * "this and following" edit. Returns `before` (occurrences strictly before
+ * `at`) and `after` (occurrences from `at` onward); modify `after` to apply the
+ * change to this-and-following instances. `at` must be an occurrence of `rule`.
+ *
+ * `count` is divided so the two halves reproduce the original set, and
+ * EXDATE (`exclude`) / RDATE (`include`) entries are partitioned across the cut.
+ *
+ * ```ts
+ * const { before, after } = splitSeries(rule, thatTuesday);
+ * recur({ ...after, byHour: [15] }); // "this and following" now at 3pm
+ * ```
+ */
+export function splitSeries<T extends TemporalPoint>(
+  rule: RecurRule<T>,
+  at: T,
+): {
+  /** Rule covering occurrences strictly before `at`. */
+  before: RecurRule<T>;
+  /** Rule covering occurrences from `at` onward (edit this for the change). */
+  after: RecurRule<T>;
+} {
+  const upto = recur(rule)
+    .takeWhile((o) => cmp(o, at) <= 0)
+    .toArray();
+  const isOccurrence = upto.length > 0 && cmp(upto[upto.length - 1]!, at) === 0;
+  if (!isOccurrence) {
+    throw new RangeError("temporals: splitSeries `at` must be an occurrence of the series");
+  }
+  const kBefore = upto.length - 1;
+
+  // `before` ends exactly at the count of occurrences before `at`.
+  const before: RecurRule<T> = { ...rule, count: kBefore, until: undefined };
+  // `after` resumes at `at`, carrying the remaining count (or the original UNTIL).
+  const after: RecurRule<T> = { ...rule, start: at };
+  if (rule.count !== undefined) after.count = Math.max(0, rule.count - kBefore);
+
+  if (rule.include) {
+    before.include = rule.include.filter((d) => cmp(d, at) < 0);
+    after.include = rule.include.filter((d) => cmp(d, at) >= 0);
+  }
+  if (rule.exclude) {
+    before.exclude = rule.exclude.filter((d) => cmp(d, at) < 0);
+    after.exclude = rule.exclude.filter((d) => cmp(d, at) >= 0);
+  }
+  return { before, after };
+}
+
 // ---------------------------------------------------------------------------
 // RFC 5545 RRULE string interop
 // ---------------------------------------------------------------------------
