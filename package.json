@@ -1,6 +1,6 @@
 {
-  "name": "temporals",
-  "version": "0.0.2",
+  "name": "@johnhenry/temporals",
+  "version": "0.0.0",
   "description": "Lazy sequences, ranges, intervals, and RRULE recurrence built on the TC39 Temporal API.",
   "type": "module",
   "exports": {
@@ -92,7 +92,7 @@
     "type": "git",
     "url": "git+https://github.com/johnhenry/temporals.git"
   },
-  "homepage": "https://github.com/johnhenry/temporals#readme",
+  "homepage": "https://opensource.johnhenry.me/temporals/",
   "bugs": {
     "url": "https://github.com/johnhenry/temporals/issues"
   },

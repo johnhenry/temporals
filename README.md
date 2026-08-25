@@ -1,5 +1,9 @@
 # temporals
 
+> Previously published as `temporals` (last release 0.0.2, now deprecated).
+> Renamed to `@johnhenry/temporals` and restarted at 0.0.0 on import into
+> the @johnhenry family — a new address and era, not a maturity signal.
+
 Lazy **sequences**, **ranges**, **intervals**, and **RRULE recurrence** built on
 the TC39 [Temporal](https://tc39.es/proposal-temporal/docs/) API.
 
@@ -10,7 +14,7 @@ gap: feed in parameters, get back a lazy collection of Temporal objects, either
 spans).
 
 ```ts
-import { range } from "temporals";
+import { range } from "@johnhenry/temporals";
 
 // The next 10 weekdays, lazily.
 range({ start: Temporal.Now.plainDateISO(), step: { days: 1 } })
@@ -41,7 +45,7 @@ range({ start: Temporal.Now.plainDateISO(), step: { days: 1 } })
 ## Install
 
 ```sh
-npm install temporals
+npm install @johnhenry/temporals
 # On Node < 22, also:
 npm install temporal-polyfill
 ```
@@ -153,7 +157,7 @@ time zone with **explicit, correct DST behaviour** — the main advantage over
 `Date`-based cron libraries.
 
 ```ts
-import { cron, cronSchedule, describeCron } from "temporals/cron";
+import { cron, cronSchedule, describeCron } from "@johnhenry/temporals/cron";
 
 cron("0 9 * * 1-5", { timeZone: "America/New_York" }).take(3).toArray(); // next 3 weekday 9am fire times
 ```
@@ -176,8 +180,8 @@ A `Schedule` is the unifying answer to "when does this happen?" — pure, never
 executes. Cron, `recur`, and `range` all compile to it.
 
 ```ts
-import { Schedule } from "temporals";
-import { cronSchedule } from "temporals/cron";
+import { Schedule } from "@johnhenry/temporals";
+import { cronSchedule } from "@johnhenry/temporals/cron";
 
 const s = cronSchedule("0 9 * * 1-5", { timeZone: "America/New_York" });
 s.next(now);              // next fire strictly after `now`
@@ -194,7 +198,7 @@ that runs a `Schedule` (the *when* vs *do it* boundary).
 ### Calendar rounding & bucketing
 
 ```ts
-import { startOf, endOf, quarterOf, fiscalQuarterOf } from "temporals";
+import { startOf, endOf, quarterOf, fiscalQuarterOf } from "@johnhenry/temporals";
 
 startOf(dt, "week", { weekStart: "MO" });   // floor to a unit
 endOf(dt, "month");                          // exclusive upper bound (start of next)
@@ -212,7 +216,7 @@ is the exclusive next-unit start, so `[startOf(p,u), endOf(p,u))` is the bucket.
 operations you need for **free/busy availability**:
 
 ```ts
-import { Interval, IntervalSet } from "temporals";
+import { Interval, IntervalSet } from "@johnhenry/temporals";
 
 const free = work.difference(busy);   // union / intersection / difference / gaps
 free.totalDuration();                 // summed coverage
@@ -229,7 +233,7 @@ meetings = open slots.
 import {
   BusinessCalendar, Holidays, usFederalHolidays, easterHoliday,
   WorkingHours, businessDuration, meetingSlots,
-} from "temporals/business";
+} from "@johnhenry/temporals/business";
 
 const cal = new BusinessCalendar({ holidays: usFederalHolidays() }); // or build your own rules
 cal.isBusinessDay(date);
@@ -257,7 +261,7 @@ per slot so *ranking* is trivial, but the ranking *policy* is yours.
 ### `temporals/humanize` — durations & relative time
 
 ```ts
-import { humanizeDuration, formatRelative, fromNow, parseDuration } from "temporals/humanize";
+import { humanizeDuration, formatRelative, fromNow, parseDuration } from "@johnhenry/temporals/humanize";
 
 humanizeDuration(Temporal.Duration.from({ hours: 2, minutes: 3 })); // "2 hours, 3 minutes"
 humanizeDuration(dur, { locale: "fr" });          // localized via Intl.DurationFormat when available
@@ -269,7 +273,7 @@ fromNow(someDate);                                // "3 days ago"
 ### `temporals/ics` — iCalendar import/export
 
 ```ts
-import { toICS, fromICS, icsToSeq } from "temporals/ics";
+import { toICS, fromICS, icsToSeq } from "@johnhenry/temporals/ics";
 
 const ics = toICS([{ start, rrule: "FREQ=WEEKLY;COUNT=4", exdate: [skipDay] }]);
 const [event] = fromICS(ics);       // Temporal values + RRULE string
@@ -279,7 +283,7 @@ icsToSeq(event).toArray();          // expand DTSTART + RRULE + EXDATE/RDATE
 ### Backoff & DST helpers
 
 ```ts
-import { backoff, isDST, nextTransition, transitionsBetween } from "temporals";
+import { backoff, isDST, nextTransition, transitionsBetween } from "@johnhenry/temporals";
 
 backoff({ base: 100, max: 5000, jitter: "equal", attempts: 6 }); // Seq<Duration> of retry delays
 isDST(zdt);                    // heuristic (offset vs standard)
