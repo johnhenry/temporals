@@ -715,9 +715,21 @@ export function ruleFromString<T extends TemporalPoint>(rrule: string, dtstart: 
         rule.count = Number(value);
         break;
       case "UNTIL": {
-        const ctor = (dtstart as unknown as { constructor: { from(s: string): T } })
-          .constructor;
-        rule.until = ctor.from(value);
+        if (kindOf(dtstart) === "zoneddatetime") {
+          // RFC 5545 UNTIL is a bare UTC date-time (no `[Time_Zone_ID]`
+          // annotation) when DTSTART carries a time zone, but ZonedDateTime.from
+          // requires that annotation. Parse it as an Instant (accepts both the
+          // basic and extended UTC forms) and re-attach DTSTART's time zone.
+          const zdt = dtstart as unknown as Temporal.ZonedDateTime;
+          const instantCtor = zdt.toInstant().constructor as unknown as {
+            from(s: string): Temporal.Instant;
+          };
+          rule.until = instantCtor.from(value).toZonedDateTimeISO(zdt.timeZoneId) as unknown as T;
+        } else {
+          const ctor = (dtstart as unknown as { constructor: { from(s: string): T } })
+            .constructor;
+          rule.until = ctor.from(value);
+        }
         break;
       }
       case "BYMONTH":
@@ -766,12 +778,28 @@ export function recurFromString<T extends TemporalPoint>(rrule: string, dtstart:
   return recur(ruleFromString(rrule, dtstart));
 }
 
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/**
+ * Format an UNTIL point per RFC 5545. `ZonedDateTime` values are normalised
+ * to UTC and emitted in the basic `YYYYMMDDTHHMMSSZ` form — RFC 5545 requires
+ * UNTIL to be a UTC date-time when DTSTART carries a time zone; the extended
+ * Temporal string (with its trailing `[Time_Zone_ID]`) is not valid ICS.
+ */
+function formatUntil(until: TemporalPoint): string {
+  if (kindOf(until) === "zoneddatetime") {
+    const pdt = (until as Temporal.ZonedDateTime).toInstant().toZonedDateTimeISO("UTC").toPlainDateTime();
+    return `${String(pdt.year).padStart(4, "0")}${pad2(pdt.month)}${pad2(pdt.day)}T${pad2(pdt.hour)}${pad2(pdt.minute)}${pad2(pdt.second)}Z`;
+  }
+  return until.toString();
+}
+
 /** Serialise a rule's recurrence parameters back to an RFC 5545 RRULE string. */
 export function formatRule(rule: RecurRule): string {
   const parts: string[] = [`FREQ=${FREQ_TO_STR[rule.freq]}`];
   if (rule.interval && rule.interval !== 1) parts.push(`INTERVAL=${rule.interval}`);
   if (rule.count !== undefined) parts.push(`COUNT=${rule.count}`);
-  if (rule.until !== undefined) parts.push(`UNTIL=${rule.until.toString()}`);
+  if (rule.until !== undefined) parts.push(`UNTIL=${formatUntil(rule.until)}`);
   if (rule.byMonth) parts.push(`BYMONTH=${rule.byMonth.join(",")}`);
   if (rule.byWeekNo) parts.push(`BYWEEKNO=${rule.byWeekNo.join(",")}`);
   if (rule.byYearDay) parts.push(`BYYEARDAY=${rule.byYearDay.join(",")}`);

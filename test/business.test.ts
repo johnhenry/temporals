@@ -7,6 +7,7 @@ import {
   Holidays,
   fixedHoliday,
   nthWeekdayHoliday,
+  usFederalHolidays,
   WorkingHours,
   businessDuration,
 } from "../src/business.js";
@@ -24,6 +25,22 @@ test("Holidays: fixed and nth-weekday rules", () => {
   assert.equal(holidays.has(D("2026-01-01")), true);
   assert.equal(holidays.has(D("2026-11-26")), true); // 4th Thursday of Nov 2026
   assert.equal(holidays.has(D("2026-11-19")), false);
+});
+
+test("Holidays: observed shift that crosses the year boundary is still found by has()", () => {
+  // Regression for https://github.com/johnhenry/temporals/issues/4 —
+  // yearSet(year) was cached under the *input* year, but has(date) looked
+  // it up under the *output* date's year, so a Jan 1 falling on a Saturday
+  // (observed the prior Friday, Dec 31) was never found.
+  const h = usFederalHolidays();
+  // fixedHoliday(1, 1, { observed: true })(2028) === 2027-12-31
+  assert.equal(fixedHoliday(1, 1, { observed: true })(2028)!.toString(), "2027-12-31");
+  assert.equal(h.has(D("2027-12-31")), true); // New Year's Day 2028, observed
+  assert.equal(h.has(D("2021-12-31")), true); // New Year's Day 2022, observed
+  assert.equal(h.has(D("2032-12-31")), true); // New Year's Day 2033, observed
+  // And the calendar treats that boundary date as non-business.
+  const boundaryCal = new BusinessCalendar({ holidays: h });
+  assert.equal(boundaryCal.isBusinessDay(D("2027-12-31")), false);
 });
 
 test("BusinessCalendar: weekends and holidays are not business days", () => {

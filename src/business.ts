@@ -128,7 +128,19 @@ export class Holidays {
 
   /** Whether the given calendar date is a holiday. */
   has(date: PlainDate): boolean {
-    return this.yearSet(date.year).has(date.toString());
+    // A rule invoked with nominal year N can produce a date landing in
+    // calendar year N-1 or N+1 (e.g. a fixed holiday with `observed: true`
+    // shifting backward across the year boundary, such as New Year's Day
+    // falling on a Saturday observed on Dec 31 of the prior year). Since
+    // `yearSet` caches each rule's output keyed by the *input* year, check
+    // the date's own year plus both neighbors rather than assuming a rule's
+    // output always stays within the year it was computed for.
+    const s = date.toString();
+    return (
+      this.yearSet(date.year).has(s) ||
+      this.yearSet(date.year - 1).has(s) ||
+      this.yearSet(date.year + 1).has(s)
+    );
   }
 
   /** All holiday dates in a year, sorted. */
