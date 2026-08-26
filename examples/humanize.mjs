@@ -1,7 +1,7 @@
 // temporals/humanize — duration humanizing, relative time, parsing.
 //   node examples/humanize.mjs
 import "temporal-polyfill/global";
-import { humanizeDuration, formatRelative, fromNow, parseDuration } from "temporals/humanize";
+import { humanizeDuration, formatRelative, fromNow, parseDuration } from "@johnhenry/temporals/humanize";
 
 const D = (s) => Temporal.PlainDate.from(s);
 const DT = (s) => Temporal.PlainDateTime.from(s);

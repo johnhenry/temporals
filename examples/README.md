@@ -1,6 +1,6 @@
 # Examples
 
-Runnable, self-contained programs — one per feature area. They import `temporals`
+Runnable, self-contained programs — one per feature area. They import `@johnhenry/temporals`
 by name (like a consumer would), so build the package first:
 
 ```sh

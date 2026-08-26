@@ -1,7 +1,7 @@
 // Interval algebra + IntervalSet (union / intersection / difference / gaps).
 //   node examples/intervals.mjs
 import "temporal-polyfill/global";
-import { Interval, IntervalSet, conflicts } from "temporals";
+import { Interval, IntervalSet, conflicts } from "@johnhenry/temporals";
 
 const D = (n) => Temporal.PlainDate.from(`2026-01-0${n}`);
 const iv = (a, b) => new Interval(D(a), D(b));

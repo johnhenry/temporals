@@ -1,7 +1,7 @@
 // recur — RRULE recurrence, EXDATE/RDATE, DST policy, builder, string interop.
 //   node examples/recur.mjs
 import "temporal-polyfill/global";
-import { recur, recurFromString, formatRule, recurBuilder, splitSeries } from "temporals";
+import { recur, recurFromString, formatRule, recurBuilder, splitSeries } from "@johnhenry/temporals";
 
 const D = (s) => Temporal.PlainDate.from(s);
 const Z = (s) => Temporal.ZonedDateTime.from(`${s}[America/New_York]`);

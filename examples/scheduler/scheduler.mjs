@@ -1,4 +1,4 @@
-import { cronSchedule } from "temporals/cron";
+import { cronSchedule } from "@johnhenry/temporals/cron";
 
 /**
  * A **minimal, in-memory, single-process reference scheduler** built on
@@ -34,7 +34,7 @@ export class Scheduler {
   /**
    * Register a job. `scheduleOrCron` is either a `temporals` Schedule or a cron string.
    * @param {string} id
-   * @param {import("temporals").Schedule | string} scheduleOrCron
+   * @param {import("@johnhenry/temporals").Schedule | string} scheduleOrCron
    * @param {(fireTime: import("temporal-polyfill").Temporal.ZonedDateTime) => void | Promise<void>} handler
    * @param {{ timeZone?: string }} [opts] timeZone required when passing a cron string
    */

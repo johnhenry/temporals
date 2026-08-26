@@ -1,12 +1,12 @@
 // temporals/business — working days, holidays, working hours, business duration.
 //   node examples/business.mjs
 import "temporal-polyfill/global";
-import { Interval, IntervalSet } from "temporals";
+import { Interval, IntervalSet } from "@johnhenry/temporals";
 import {
   BusinessCalendar, usFederalHolidays, easterHoliday,
   WorkingHours, businessDuration, meetingSlots,
-} from "temporals/business";
-import { humanizeDuration } from "temporals/humanize";
+} from "@johnhenry/temporals/business";
+import { humanizeDuration } from "@johnhenry/temporals/humanize";
 
 const D = (s) => Temporal.PlainDate.from(s);
 const Z = (s) => Temporal.ZonedDateTime.from(`${s}[America/New_York]`);

@@ -1,7 +1,7 @@
 // Runnable demo:  node examples/scheduler/demo.mjs   (from the repo root)
 import "temporal-polyfill/global"; // no-op on Node 22+ with native Temporal
-import { Schedule } from "temporals";
-import { cronSchedule, describeCron } from "temporals/cron";
+import { Schedule } from "@johnhenry/temporals";
+import { cronSchedule, describeCron } from "@johnhenry/temporals/cron";
 import { Scheduler } from "./scheduler.mjs";
 
 const TZ = "America/New_York";

@@ -1,9 +1,9 @@
 // Free/busy availability — the payoff of composing Schedule + IntervalSet +
 // business hours.  Run:  node examples/availability.mjs
 import "temporal-polyfill/global";
-import { Interval, IntervalSet } from "temporals";
-import { WorkingHours, BusinessCalendar, Holidays, fixedHoliday } from "temporals/business";
-import { humanizeDuration } from "temporals/humanize";
+import { Interval, IntervalSet } from "@johnhenry/temporals";
+import { WorkingHours, BusinessCalendar, Holidays, fixedHoliday } from "@johnhenry/temporals/business";
+import { humanizeDuration } from "@johnhenry/temporals/humanize";
 
 const TZ = "America/New_York";
 const Z = (s) => Temporal.ZonedDateTime.from(`${s}[${TZ}]`);

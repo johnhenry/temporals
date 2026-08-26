@@ -1,7 +1,7 @@
 // temporals/ics — iCalendar import/export round-trip.
 //   node examples/ics.mjs
 import "temporal-polyfill/global";
-import { toICS, fromICS, icsToSeq } from "temporals/ics";
+import { toICS, fromICS, icsToSeq } from "@johnhenry/temporals/ics";
 
 const D = (s) => Temporal.PlainDate.from(s);
 
