@@ -1,8 +1,8 @@
 // backoff (retry delays) + DST-transition helpers.
 //   node examples/backoff.mjs
 import "temporal-polyfill/global";
-import { backoff, isDST, nextTransition, previousTransition, transitionsBetween } from "temporals";
-import { humanizeDuration } from "temporals/humanize";
+import { backoff, isDST, nextTransition, previousTransition, transitionsBetween } from "@johnhenry/temporals";
+import { humanizeDuration } from "@johnhenry/temporals/humanize";
 
 const ms = (seq) => [...seq].map((d) => d.milliseconds);
 

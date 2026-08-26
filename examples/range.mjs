@@ -1,7 +1,7 @@
 // range / chunks / windows / seq builder / calendar rounding.
 //   node examples/range.mjs
 import "temporal-polyfill/global";
-import { range, chunks, windows, seq, startOf, endOf, quarterOf } from "temporals";
+import { range, chunks, windows, seq, startOf, endOf, quarterOf } from "@johnhenry/temporals";
 
 const D = (s) => Temporal.PlainDate.from(s);
 const show = (label, it) => console.log(label, [...it].map(String).join(", "));

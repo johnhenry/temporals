@@ -15,7 +15,7 @@ From the repo root (after `npm install` + `npm run build`):
 
 ```sh
 node examples/scheduler/demo.mjs      # preview + a live every-2s job
-node --test examples/scheduler        # the scheduler's own tests
+node --test examples/scheduler/test.mjs  # the scheduler's own tests
 ```
 
 ## Usage
@@ -32,7 +32,7 @@ scheduler.add("report", "0 9 * * 1-5", (t) => console.log("run", t.toString()), 
 });
 
 // … or any temporals Schedule (cron / RRULE / range)
-import { Schedule } from "temporals";
+import { Schedule } from "@johnhenry/temporals";
 scheduler.add(
   "biweekly",
   Schedule.rule({ start: Temporal.PlainDate.from("2026-01-01"), freq: "weekly", interval: 2, byWeekday: ["MO"] }),

@@ -3,10 +3,10 @@
 // backoff, ics).
 //   node examples/basic.mjs
 import "temporal-polyfill/global";
-import { range, recur, Schedule, Interval, IntervalSet, startOf } from "temporals";
-import { cron, describeCron } from "temporals/cron";
-import { usFederalHolidays, BusinessCalendar } from "temporals/business";
-import { humanizeDuration } from "temporals/humanize";
+import { range, recur, Schedule, Interval, IntervalSet, startOf } from "@johnhenry/temporals";
+import { cron, describeCron } from "@johnhenry/temporals/cron";
+import { usFederalHolidays, BusinessCalendar } from "@johnhenry/temporals/business";
+import { humanizeDuration } from "@johnhenry/temporals/humanize";
 
 const D = (s) => Temporal.PlainDate.from(s);
 const TZ = "America/New_York";

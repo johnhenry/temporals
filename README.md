@@ -52,6 +52,8 @@ npm install temporal-polyfill
 
 ## Documentation
 
+- **Guided docs** — trap-first guides for the core and every subpath at
+  **https://opensource.johnhenry.me/temporals/**.
 - **API reference** — a complete, generated reference for every export (all
   subpaths) lives at **https://johnhenry.github.io/temporals/** (built from JSDoc
   via TypeDoc; run `npm run docs` to generate it locally into `docs/`).

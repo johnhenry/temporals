@@ -1,7 +1,7 @@
 // temporals/cron — Temporal-native cron with DST + Quartz specials.
 //   node examples/cron.mjs
 import "temporal-polyfill/global";
-import { cron, cronSchedule, describeCron, parseCron, cronToRule, ruleToCron } from "temporals/cron";
+import { cron, cronSchedule, describeCron, parseCron, cronToRule, ruleToCron } from "@johnhenry/temporals/cron";
 
 const TZ = "America/New_York";
 const Z = (s) => Temporal.ZonedDateTime.from(`${s}[${TZ}]`);
