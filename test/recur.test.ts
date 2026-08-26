@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Temporal } from "temporal-polyfill";
-import { recur, recurFromString, formatRule, recurBuilder } from "../src/index.js";
+import { recur, recurFromString, ruleFromString, formatRule, recurBuilder } from "../src/index.js";
 
 const D = (s: string) => Temporal.PlainDate.from(s);
 const strs = (it: Iterable<{ toString(): string }>) => [...it].map((x) => x.toString());
@@ -128,6 +128,40 @@ test("formatRule: serialises back to an RRULE string", () => {
     count: 5,
   });
   assert.equal(s, "FREQ=MONTHLY;INTERVAL=2;COUNT=5;BYDAY=-1FR");
+});
+
+test("formatRule: UNTIL for a ZonedDateTime rule is RFC 5545 UTC form, not an extended zoned string", () => {
+  // Regression for https://github.com/johnhenry/temporals/issues/5 — UNTIL
+  // must be a bare UTC date-time (YYYYMMDDTHHMMSSZ) when DTSTART carries a
+  // time zone; the old code emitted Temporal's extended `[Time_Zone_ID]`
+  // form, which real calendar clients reject.
+  const start = Temporal.ZonedDateTime.from("2026-01-01T09:00:00-05:00[America/New_York]");
+  const until = Temporal.ZonedDateTime.from("2026-06-01T09:00:00-04:00[America/New_York]");
+  const s = formatRule({ start, freq: "weekly", until });
+  assert.match(s, /UNTIL=\d{8}T\d{6}Z/);
+  assert.doesNotMatch(s, /\[.*\]/); // no [Time_Zone_ID] annotation
+  assert.equal(s, "FREQ=WEEKLY;UNTIL=20260601T130000Z");
+});
+
+test("ruleFromString: round-trips a real (non-bracketed) UTC UNTIL for a zoned DTSTART", () => {
+  // The RRULE an external tool (Google Calendar, etc.) would actually emit:
+  // a bare UTC UNTIL with no [Time_Zone_ID] annotation. ruleFromString must
+  // parse it (ZonedDateTime.from would reject a bracket-less string), and
+  // re-serialising via formatRule must round-trip to the same UTC form.
+  const start = Temporal.ZonedDateTime.from("2026-01-01T09:00:00-05:00[America/New_York]");
+  const rule = ruleFromString("FREQ=WEEKLY;UNTIL=20260601T130000Z", start);
+  assert.equal(rule.until?.toInstant().toString(), "2026-06-01T13:00:00Z");
+  assert.equal(rule.until?.timeZoneId, "America/New_York");
+  assert.equal(formatRule(rule), "FREQ=WEEKLY;UNTIL=20260601T130000Z");
+
+  // And the resulting sequence stops at the right wall-clock instant. DTSTART
+  // is a Thursday, so the last occurrence at/before the June 1 (Monday)
+  // UNTIL is the preceding Thursday, May 28.
+  const out = recur(rule)
+    .toArray()
+    .map((z) => z.toPlainDate().toString());
+  assert.equal(out[0], "2026-01-01");
+  assert.equal(out[out.length - 1], "2026-05-28");
 });
 
 test("recurBuilder: fluent API matches the rule object", () => {
