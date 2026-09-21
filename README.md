@@ -4,6 +4,10 @@
 > Renamed to `@johnhenry/temporals` and restarted at 0.0.0 on import into
 > the @johnhenry family — a new address and era, not a maturity signal.
 
+[![npm version](https://img.shields.io/npm/v/%40johnhenry%2Ftemporals.svg)](https://www.npmjs.com/package/@johnhenry/temporals)
+[![CI](https://github.com/johnhenry/temporals/actions/workflows/ci.yml/badge.svg)](https://github.com/johnhenry/temporals/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/%40johnhenry%2Ftemporals.svg)](LICENSE)
+
 Lazy **sequences**, **ranges**, **intervals**, and **RRULE recurrence** built on
 the TC39 [Temporal](https://tc39.es/proposal-temporal/docs/) API.
 
@@ -22,6 +26,16 @@ range({ start: Temporal.Now.plainDateISO(), step: { days: 1 } })
   .take(10)
   .toArray();
 ```
+
+## Contents
+
+- [Design](#design)
+- [Install](#install)
+- [Documentation](#documentation)
+- [API](#api)
+- [Supported point types](#supported-point-types)
+- [Scope & limitations](#scope--limitations)
+- [License](#license)
 
 ## Design
 
