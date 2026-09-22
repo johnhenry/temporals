@@ -8,6 +8,8 @@
 [![CI](https://github.com/johnhenry/temporals/actions/workflows/ci.yml/badge.svg)](https://github.com/johnhenry/temporals/actions/workflows/ci.yml)
 [![license](https://img.shields.io/npm/l/%40johnhenry%2Ftemporals.svg)](LICENSE)
 
+Full documentation: [opensource.johnhenry.me/temporals](https://opensource.johnhenry.me/temporals/)
+
 Lazy **sequences**, **ranges**, **intervals**, and **RRULE recurrence** built on
 the TC39 [Temporal](https://tc39.es/proposal-temporal/docs/) API.
 
@@ -35,6 +37,7 @@ range({ start: Temporal.Now.plainDateISO(), step: { days: 1 } })
 - [API](#api)
 - [Supported point types](#supported-point-types)
 - [Scope & limitations](#scope--limitations)
+- [Family](#family)
 - [License](#license)
 
 ## Design
@@ -344,6 +347,13 @@ Being upfront about the edges:
   serialize the source instead — cron string, `formatRule(rule)`, or `.ics`.
 - The reference **scheduler** ([`examples/scheduler`](examples/scheduler)) is a
   demo, not a durable/clustered job runner.
+
+## Family
+
+| Consumes Temporal for | Library | Status |
+|---|---|---|
+| Lazy sequences, ranges, intervals, RRULE recurrence, cron | `@johnhenry/temporals` (this package) | — |
+| Publishing the current wall-clock time, in any IANA zone, as CSS custom properties | [`@johnhenry/css-signals`](https://github.com/johnhenry/css-signals) | published — independent sibling; no dependency either direction, both read the TC39 Temporal API directly (css-signals' `date()` source reads `Temporal` the same way this package's generators do) |
 
 ## License
 
