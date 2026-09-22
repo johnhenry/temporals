@@ -7,27 +7,25 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # 20 has neither native Temporal nor iterator helpers (polyfill path);
-        # 22 has both (native path). Cover both.
-        node: [20, 22]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-          cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
-      - run: npm run test:example # exercises the built package via the subpath
-      - run: npm run examples # every example must still run against the built package
-      - run: npm run docs # the API reference must generate cleanly
+    uses: johnhenry/workflows/.github/workflows/ci.yml@v1
+    with:
+      # 20 has neither native Temporal nor iterator helpers (polyfill path);
+      # 22 has both (native path). Cover both.
+      node-versions: '["20", "22"]'
+      os: '["ubuntu-latest"]'
+      gate-commands: |
+        npm run typecheck
+        npm test
+        npm run build
+        npm run test:example
+        npm run examples
+        npm run docs
 
   coverage:
+    # Kept as its own job rather than folded into the reusable ci.yml call:
+    # single pinned Node version with a custom coverage-threshold
+    # invocation, not a plain "npm test" gate the reusable workflow's
+    # matrix shape covers.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
