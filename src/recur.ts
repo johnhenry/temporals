@@ -698,8 +698,11 @@ export function ruleFromString<T extends TemporalPoint>(rrule: string, dtstart: 
   for (const part of body.split(";")) {
     if (!part) continue;
     const eq = part.indexOf("=");
-    const name = part.slice(0, eq).trim().toUpperCase();
-    const value = part.slice(eq + 1).trim();
+    // `part.slice(0, -1)` (what `part.slice(0, eq)` becomes when `eq` is -1,
+    // i.e. no "=" in this part) silently drops the part's last character —
+    // fall back to the whole part so error messages below quote it intact.
+    const name = (eq === -1 ? part : part.slice(0, eq)).trim().toUpperCase();
+    const value = eq === -1 ? "" : part.slice(eq + 1).trim();
     switch (name) {
       case "FREQ": {
         const f = STR_TO_FREQ[value.toUpperCase()];
@@ -715,6 +718,9 @@ export function ruleFromString<T extends TemporalPoint>(rrule: string, dtstart: 
         rule.count = Number(value);
         break;
       case "UNTIL": {
+        if (dtstart == null) {
+          throw new RangeError("temporals: RRULE has UNTIL but no DTSTART was provided");
+        }
         if (kindOf(dtstart) === "zoneddatetime") {
           // RFC 5545 UNTIL is a bare UTC date-time (no `[Time_Zone_ID]`
           // annotation) when DTSTART carries a time zone, but ZonedDateTime.from

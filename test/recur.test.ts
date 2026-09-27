@@ -185,3 +185,25 @@ test("recur: invalid rules throw clearly", () => {
     /positive integer/,
   );
 });
+
+test("ruleFromString: a part with no \"=\" is quoted intact in the error, not truncated", () => {
+  // Regression: `part.slice(0, eq)` with `eq = part.indexOf("=")` becomes
+  // `part.slice(0, -1)` when the part has no "=", which silently drops the
+  // part's last character. "BOGUS" must not be reported as "BOGU".
+  assert.throws(
+    () => ruleFromString("FREQ=DAILY;BOGUS", D("2026-01-01")),
+    /unsupported RRULE part "BOGUS"/,
+  );
+});
+
+test("ruleFromString: UNTIL without a DTSTART throws a clear RangeError, not a raw TypeError", () => {
+  // Regression: parsing UNTIL dereferences `dtstart` (via `kindOf`) assuming
+  // it exists. Calling with no DTSTART (e.g. an ICS VEVENT with RRULE but no
+  // DTSTART, see ics.test.ts) used to throw kindOf's generic
+  // "expected a Temporal point ... got undefined" TypeError instead of a
+  // clear, typed error naming the actual problem.
+  assert.throws(
+    () => ruleFromString("FREQ=DAILY;UNTIL=20260101T000000Z", undefined as never),
+    (err: unknown) => err instanceof RangeError && /UNTIL.*no DTSTART/.test((err as Error).message),
+  );
+});
