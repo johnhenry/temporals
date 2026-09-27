@@ -37,6 +37,27 @@ test("fromICS: parses events back to Temporal values", () => {
   assert.deepEqual(e!.rdate!.map(String), ["2026-01-03"]);
 });
 
+test("icsToSeq: an event with RRULE UNTIL but no DTSTART line throws a clear error", () => {
+  // Regression: a malformed (but realistic) ICS feed can omit DTSTART on a
+  // VEVENT; `fromICS` then leaves `event.start` as `undefined`. Piping that
+  // into `icsToSeq` -> `ruleFromString` used to throw a raw, context-free
+  // TypeError from deep inside UNTIL parsing instead of a clear error.
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "BEGIN:VEVENT",
+    "RRULE:FREQ=WEEKLY;UNTIL=20260601T130000Z",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+  const [e] = fromICS(ics);
+  assert.equal(e!.start, undefined);
+  assert.throws(
+    () => icsToSeq(e!),
+    (err: unknown) => err instanceof RangeError && /UNTIL.*no DTSTART/.test((err as Error).message),
+  );
+});
+
 test("icsToSeq: RRULE + EXDATE + RDATE expand correctly", () => {
   const [e] = fromICS(
     toICS([
