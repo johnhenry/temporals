@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.3 — 2026-10-07
+
+- Release of the changes below. (A `v0.0.2` git tag from July already pointed at an
+  unpublished commit, so this release is numbered 0.0.3; 0.0.2 was never on npm.)
+
 ## 0.0.2 — 2026-10-06
 
 - Fix: `describeCron` ignored the seconds field of 6-field expressions in most
