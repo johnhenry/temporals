@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.2 — 2026-10-06
+
+- Fix: `describeCron` ignored the seconds field of 6-field expressions in most
+  cases (`*/3 * * * * *` and `0,30 * * * * *` both read "every minute"). The
+  seconds field is now described in every branch: `every second`,
+  `every 3 seconds`, `at seconds 0, 30`, `every second from 10 through 20`,
+  `at second 30 of every minute`, and combined with minute/hour phrasing
+  (`every 10 seconds, at 09:00`; the single-value fixed-time form `at 09:00:15`
+  is unchanged). 5-field output is byte-identical.
+- CI/release: run on Node 26 only (matches `engines.node >=26`); release,
+  coverage jobs moved from Node 22 to 26.
+
 ## 0.0.1 — 2026-09-27
 
 - Fix: `ruleFromString` truncated the last character of the offending part's

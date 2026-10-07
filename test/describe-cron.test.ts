@@ -29,3 +29,28 @@ test("describeCron: 5-field descriptions are unchanged (snapshot)", () => {
     assert.equal(describeCron(expr, false), expected, expr + " (seconds=false)");
   }
 });
+
+// 6-field (leading seconds) expressions: the seconds field must be described
+// in every branch.
+const SIX_FIELD: [string, string][] = [
+  ["* * * * * *", "every second"],
+  ["*/3 * * * * *", "every 3 seconds"],
+  ["0,30 * * * * *", "at seconds 0, 30"],
+  ["10-20 * * * * *", "every second from 10 through 20"],
+  ["30 * * * * *", "at second 30 of every minute"],
+  ["0 * * * * *", "every minute"],
+  ["15 0 9 * * *", "at 09:00:15"],
+  ["0 0 9 * * *", "at 09:00:00"],
+  ["*/10 0 9 * * *", "every 10 seconds, at 09:00"],
+  ["0,30 0 9 * * *", "at seconds 0, 30, at 09:00"],
+  ["10-20 0 9 * * *", "every second from 10 through 20, at 09:00"],
+  ["*/5 30 * * * *", "every 5 seconds, at 30 minutes past every hour"],
+  ["*/3 * * * * 1-5", "every 3 seconds, on Monday, Tuesday, Wednesday, Thursday, and Friday"],
+];
+
+for (const [expr, expected] of SIX_FIELD) {
+  test(`describeCron (6-field): ${expr}`, () => {
+    assert.equal(describeCron(expr), expected);
+    assert.equal(describeCron(expr, true), expected);
+  });
+}
