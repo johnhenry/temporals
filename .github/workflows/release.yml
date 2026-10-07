@@ -24,7 +24,7 @@ jobs:
         # see johnhenry/workflows' README for why this must be declared here too.
     uses: johnhenry/workflows/.github/workflows/npm-publish.yml@v1
     with:
-      node-version: "22"
+      node-version: "26"
       gate-commands: |
         npm run typecheck
         npm test

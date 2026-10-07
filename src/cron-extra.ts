@@ -30,20 +30,42 @@ function listNames(values: number[], names: string[]): string {
   return `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}`;
 }
 
-function describeTime(p: ParsedCron): string {
+/** English for the seconds field alone, or `null` when it adds nothing ("0"). */
+function describeSeconds(p: ParsedCron, token: string): string | null {
+  if (p.second.wildcard) return "every second";
+  const step = /^\*\/(\d+)$/.exec(token);
+  if (step) return `every ${Number(step[1])} seconds`;
+  const secs = sorted(p.second.values);
+  if (secs.length === 1) return secs[0] === 0 ? null : `at second ${secs[0]}`;
+  const contiguous = secs.length > 2 && secs.every((v, i) => i === 0 || v === secs[i - 1]! + 1);
+  if (contiguous) return `every second from ${secs[0]} through ${secs.at(-1)}`;
+  return `at seconds ${secs.join(", ")}`;
+}
+
+function describeTime(p: ParsedCron, secondToken = ""): string {
   const mins = sorted(p.minute.values);
   const hours = sorted(p.hour.values);
-  const secPart =
-    p.hasSeconds && !p.second.wildcard && p.second.values.size === 1
-      ? `:${pad([...p.second.values][0]!)}`
-      : "";
+  const singleSecond = p.hasSeconds && !p.second.wildcard && p.second.values.size === 1;
+  const secPart = singleSecond ? `:${pad([...p.second.values][0]!)}` : "";
   if (!p.hour.wildcard && hours.length === 1 && !p.minute.wildcard && mins.length === 1) {
-    return `at ${pad(hours[0]!)}:${pad(mins[0]!)}${secPart}`;
+    if (!p.hasSeconds || singleSecond) return `at ${pad(hours[0]!)}:${pad(mins[0]!)}${secPart}`;
+    return `${describeSeconds(p, secondToken)}, at ${pad(hours[0]!)}:${pad(mins[0]!)}`;
   }
+  const sec = p.hasSeconds ? describeSeconds(p, secondToken) : null;
+  const every = p.minute.wildcard && p.hour.wildcard;
+  if (every) {
+    if (!sec) return "every minute";
+    if (singleSecond) return `${sec} of every minute`;
+    return sec;
+  }
+  const base = describeTimeBase(p, mins, hours);
+  return sec ? `${sec}, ${base}` : base;
+}
+
+function describeTimeBase(p: ParsedCron, mins: number[], hours: number[]): string {
   if (p.hour.wildcard && !p.minute.wildcard && mins.length === 1) {
     return `at ${mins[0]} minutes past every hour`;
   }
-  if (p.minute.wildcard && p.hour.wildcard) return "every minute";
   const hourPart = p.hour.wildcard ? "every hour" : `hours ${listNames(hours, [])}`;
   const minPart = p.minute.wildcard ? "every minute" : `minute ${listNames(mins, [])}`;
   return `at ${minPart} of ${hourPart}`;
@@ -71,7 +93,8 @@ function describeDow(dow: DayField): string {
 /** A best-effort English description of a cron expression. */
 export function describeCron(expr: string, seconds?: boolean): string {
   const p = parseCron(expr, seconds);
-  const parts: string[] = [describeTime(p)];
+  const secondToken = p.hasSeconds ? (expr.trim().split(/\s+/)[0] ?? "") : "";
+  const parts: string[] = [describeTime(p, secondToken)];
   const domR = !p.dom.wildcard;
   const dowR = !p.dow.wildcard;
   if (domR && dowR) parts.push(`${describeDom(p.dom)} or ${describeDow(p.dow)} (cron OR)`);
