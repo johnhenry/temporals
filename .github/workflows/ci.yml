@@ -40,3 +40,6 @@ jobs:
           --test-coverage-branches=80
           --test-coverage-functions=80
           test/*.test.ts
+
+  workflow-lint:
+    uses: johnhenry/workflows/.github/workflows/workflow-lint.yml@v1
