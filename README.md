@@ -71,9 +71,8 @@ npm install temporal-polyfill
 
 - **Guided docs** — trap-first guides for the core and every subpath at
   **https://opensource.johnhenry.me/temporals/**.
-- **API reference** — a complete, generated reference for every export (all
-  subpaths) lives at **https://johnhenry.github.io/temporals/** (built from JSDoc
-  via TypeDoc; run `npm run docs` to generate it locally into `docs/`).
+- **API reference** — generated from JSDoc via TypeDoc; run `npm run docs` to
+  build it locally into `docs/`.
 - **Examples** — runnable, per-feature programs in [`examples/`](examples)
   (`range`, `recur`, `cron`, `intervals`, `business`, `humanize`, `backoff`,
   `ics`, plus a reference scheduler). `npm run examples` runs them all.
