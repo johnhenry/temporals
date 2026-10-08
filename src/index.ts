@@ -13,6 +13,7 @@ export {
   quarterOf,
   fiscalQuarterOf,
   fiscalYearOf,
+  isoWeekOf,
   type CalendarUnit,
 } from "./calendar.js";
 
@@ -44,7 +45,7 @@ export { Schedule } from "./schedule.js";
 export { backoff, type BackoffOptions } from "./backoff.js";
 
 // DST / time-zone transition helpers
-export { isDST, nextTransition, previousTransition, transitionsBetween } from "./dst.js";
+export { isDST, dstSavingsNanoseconds, nextTransition, previousTransition, transitionsBetween } from "./dst.js";
 
 // Temporal resolution (only needed by helpers that construct values)
 export { getTemporal, configureTemporal } from "./temporal.js";

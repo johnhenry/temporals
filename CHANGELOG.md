@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0 — 2026-10-08
+
+- New: `isoWeekOf(point)` returns `{ year, week }` (ISO week number and week-year).
+- New: `dstSavingsNanoseconds(zdt)` exposes the raw DST shift `isDST` is derived
+  from, so callers can apply their own definition (e.g. Europe/Dublin).
+- Behaviour: `quarterOf` / `fiscalQuarterOf` / `fiscalYearOf` now throw
+  `RangeError` for calendars/years without 12 months (e.g. Hebrew leap years)
+  instead of silently returning a wrong quarter.
+- Docs: Scope & limitations now states the 12-month and ISO-week assumptions and
+  that conflict resolution is deliberately out of scope.
+
 ## 0.0.3 — 2026-10-07
 
 - Release of the changes below. (A `v0.0.2` git tag from July already pointed at an

@@ -22,9 +22,20 @@ function offsetAtMonth(zdt: ZDT, month: number): number {
  * ambiguous under any single definition — treat the result there as advisory.
  */
 export function isDST(zdt: ZDT): boolean {
+  return dstSavingsNanoseconds(zdt) > 0;
+}
+
+/**
+ * The raw DST shift in nanoseconds: `zdt`'s offset minus the zone's minimum
+ * offset across that calendar year (`0` when not shifted). This is the number
+ * `isDST` is derived from (`> 0`); use it directly when you need to apply your
+ * own definition, e.g. for negative-DST zones like Europe/Dublin where the
+ * "standard" offset is a policy question.
+ */
+export function dstSavingsNanoseconds(zdt: ZDT): number {
   let standard = Infinity;
   for (let m = 1; m <= 12; m++) standard = Math.min(standard, offsetAtMonth(zdt, m));
-  return zdt.offsetNanoseconds > standard;
+  return zdt.offsetNanoseconds - standard;
 }
 
 /** The next UTC-offset transition at or after `zdt`, or `null` if the zone has none ahead. */

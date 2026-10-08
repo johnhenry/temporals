@@ -109,8 +109,22 @@ export function endOf<T extends TemporalPoint>(
   return add(startOf(point, unit, opts), UNIT_STEP[unit]);
 }
 
-/** Calendar quarter (1–4) of a date-bearing point. */
+function assertTwelveMonths(point: TemporalPoint, fn: string): void {
+  const n = (point as unknown as { monthsInYear?: number }).monthsInYear;
+  if (n !== undefined && n !== 12) {
+    throw new RangeError(
+      `${fn} assumes 12-month years; this point's year has ${n} months (calendar: ${(point as unknown as { calendarId?: string }).calendarId}).`,
+    );
+  }
+}
+
+/**
+ * Calendar quarter (1–4) of a date-bearing point. Assumes 12-month years:
+ * throws `RangeError` for a year with a different month count (e.g. a Hebrew
+ * leap year) rather than returning a wrong answer.
+ */
 export function quarterOf(point: TemporalPoint): number {
+  assertTwelveMonths(point, "quarterOf");
   const m = (point as unknown as { month: number }).month;
   return Math.floor((m - 1) / 3) + 1;
 }
@@ -120,6 +134,7 @@ export function quarterOf(point: TemporalPoint): number {
  * default 1 = calendar year). e.g. an October start makes Oct–Dec Q1.
  */
 export function fiscalQuarterOf(point: TemporalPoint, startMonth = 1): number {
+  assertTwelveMonths(point, "fiscalQuarterOf");
   const m = (point as unknown as { month: number }).month;
   const shifted = ((m - startMonth + 12) % 12) + 1;
   return Math.floor((shifted - 1) / 3) + 1;
@@ -130,7 +145,22 @@ export function fiscalQuarterOf(point: TemporalPoint, startMonth = 1): number {
  * the start belong to the fiscal year named for the calendar year they end in.
  */
 export function fiscalYearOf(point: TemporalPoint, startMonth = 1): number {
+  assertTwelveMonths(point, "fiscalYearOf");
   const p = point as unknown as { month: number; year: number };
   if (startMonth === 1) return p.year;
   return p.month >= startMonth ? p.year + 1 : p.year;
+}
+
+/**
+ * ISO 8601 week number (1–53) and week-year of a date-bearing point. The
+ * week-year can differ from the calendar year near year boundaries
+ * (`2027-01-01` is week 53 of 2026). ISO calendar only: throws `RangeError`
+ * for other calendars, where week numbering is undefined.
+ */
+export function isoWeekOf(point: TemporalPoint): { year: number; week: number } {
+  const p = point as unknown as { weekOfYear?: number; yearOfWeek?: number };
+  if (p.weekOfYear === undefined || p.yearOfWeek === undefined) {
+    throw new RangeError("isoWeekOf requires a point in a calendar with ISO week numbering (iso8601)");
+  }
+  return { year: p.yearOfWeek, week: p.weekOfYear };
 }

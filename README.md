@@ -332,17 +332,21 @@ Being upfront about the edges:
   year), business-day/weekday logic, and **`recur` month/year stepping** are
   calendar-aware and work with Hebrew, Islamic, Persian, etc. (needs
   `temporal-polyfill/full` or native Temporal + ICU). *Not* generalized:
-  `quarterOf`/`fiscalQuarterOf` assume 12-month years; `byWeekNo`/`byYearDay` are
+  `quarterOf`/`fiscalQuarterOf`/`fiscalYearOf` assume 12-month years (they throw
+  `RangeError` otherwise); `isoWeekOf` is ISO-calendar only; `byWeekNo`/`byYearDay` are
   ISO-oriented; the Chinese calendar's leap months (numeric `month` vs
   `monthCode`) are only best-effort. `cron` is Gregorian civil time by design.
 - **`isDST` is a definition, not a law.** Defined as "offset above the year's
   minimum offset." Correct for standard summer-DST zones; **negative-DST zones**
-  (e.g. Europe/Dublin) are inherently ambiguous — treat as advisory.
+  (e.g. Europe/Dublin) are inherently ambiguous — treat as advisory, or use
+  `dstSavingsNanoseconds(zdt)` for the raw shift and decide yourself.
 - **Leap seconds** are not modeled (Temporal doesn't — it uses a POSIX-like time
   scale). Durations won't reflect them.
 - **`meetingSlots` finds availability, not the *optimal* time.** It returns the
   windows when everyone is free; scoring by preference, timezone fairness, or
   fragmentation is a solver concern left to the caller.
+- **Conflict resolution is out of scope.** `conflicts()` detects overlapping
+  bookings; coalescing, first-fit placement, and priority policy stay app-level.
 - **`Schedule` isn't serializable** as such (it's an opaque occurrence function);
   serialize the source instead — cron string, `formatRule(rule)`, or `.ics`.
 - The reference **scheduler** ([`examples/scheduler`](examples/scheduler)) is a
