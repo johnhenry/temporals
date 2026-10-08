@@ -39,3 +39,35 @@ test("quarter and fiscal helpers", () => {
   assert.equal(fiscalYearOf(D("2026-05-17"), 10), 2026);
   assert.equal(fiscalYearOf(D("2026-11-01"), 10), 2027);
 });
+
+import { isoWeekOf, dstSavingsNanoseconds } from "../src/index.js";
+
+test("quarterOf / fiscal helpers refuse non-12-month calendars instead of answering wrongly", () => {
+  const leapHebrew = Temporal.PlainDate.from({ year: 5784, monthCode: "M05", day: 1, calendar: "hebrew" });
+  assert.equal(leapHebrew.monthsInYear, 13);
+  assert.throws(() => quarterOf(leapHebrew), RangeError);
+  assert.throws(() => fiscalQuarterOf(leapHebrew, 4), RangeError);
+  assert.throws(() => fiscalYearOf(leapHebrew, 4), RangeError);
+  assert.equal(quarterOf(D("2026-05-17")), 2);
+});
+
+test("isoWeekOf: ISO week number and week-year (year boundary)", () => {
+  assert.deepEqual(isoWeekOf(D("2026-01-01")), { year: 2026, week: 1 });
+  assert.deepEqual(isoWeekOf(D("2027-01-01")), { year: 2026, week: 53 });
+  assert.deepEqual(isoWeekOf(D("2024-12-30")), { year: 2025, week: 1 });
+  assert.deepEqual(isoWeekOf(DT("2026-05-17T13:45:30")), { year: 2026, week: 20 });
+  const hebrew = Temporal.PlainDate.from("2026-05-17").withCalendar("hebrew");
+  assert.throws(() => isoWeekOf(hebrew), RangeError);
+});
+
+test("dstSavingsNanoseconds: raw DST shift, caller decides what it means", () => {
+  const H = 3_600_000_000_000;
+  const z = (s: string) => Temporal.ZonedDateTime.from(s);
+  assert.equal(dstSavingsNanoseconds(z("2026-07-01T12:00[America/New_York]")), H);
+  assert.equal(dstSavingsNanoseconds(z("2026-01-01T12:00[America/New_York]")), 0);
+  assert.equal(dstSavingsNanoseconds(z("2026-07-01T12:00[Asia/Tokyo]")), 0);
+  // Southern hemisphere
+  assert.equal(dstSavingsNanoseconds(z("2026-01-01T12:00[Australia/Sydney]")), H);
+  // Negative-DST zone: Dublin summer (IST) is the larger offset, so by this definition it is "savings"
+  assert.equal(dstSavingsNanoseconds(z("2026-07-01T12:00[Europe/Dublin]")), H);
+});
