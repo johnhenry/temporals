@@ -47,3 +47,34 @@ test("humanizeDuration: locale option localizes when Intl.DurationFormat exists,
     assert.equal(out, "2 hours, 3 minutes"); // graceful English fallback
   }
 });
+
+const Z = (s: string) => Temporal.ZonedDateTime.from(s);
+
+test("formatRelative: 'tomorrow' only for the next calendar day", () => {
+  const now = Z("2026-03-10T10:00:00-07:00[America/Los_Angeles]");
+  assert.equal(formatRelative(now, now.add({ hours: 47 })), "in 2 days");
+  assert.equal(formatRelative(now, now.add({ hours: 24 })), "tomorrow");
+  assert.equal(formatRelative(now, now.add({ hours: 47 }), { numeric: "always" }), "in 2 days");
+  // 47 h spanning two dates, from late evening
+  const late = Z("2026-03-10T23:00:00-07:00[America/Los_Angeles]");
+  assert.equal(formatRelative(late, late.add({ hours: 47 })), "in 2 days");
+  assert.equal(formatRelative(late.add({ hours: 47 }), late), "2 days ago");
+  assert.equal(formatRelative(now.add({ hours: 24 }), now), "yesterday");
+  assert.equal(formatRelative(now.add({ hours: 47 }), now), "2 days ago");
+});
+
+test("formatRelative: calendar days are counted in the target time zone", () => {
+  // 2026-11-01 is the 25-hour fall-back day in Los Angeles.
+  const a = Z("2026-10-31T12:00:00-07:00[America/Los_Angeles]");
+  assert.equal(formatRelative(a, Z("2026-11-01T12:00:00-08:00[America/Los_Angeles]")), "tomorrow");
+  // Same instant gap, wall dates two apart in the target zone
+  const from = Z("2026-06-01T20:00:00-07:00[America/Los_Angeles]");
+  const to = from.add({ hours: 30 }); // 2026-06-03T02:00 local
+  assert.equal(formatRelative(from, to), "in 2 days");
+});
+
+test("formatRelative: PlainDateTime uses calendar days too", () => {
+  assert.equal(formatRelative(DT("2026-01-01T10:00"), DT("2026-01-03T09:00")), "in 2 days");
+  assert.equal(formatRelative(DT("2026-01-01T10:00"), DT("2026-01-02T10:00")), "tomorrow");
+  assert.equal(formatRelative(DT("2026-01-01T23:00"), DT("2026-01-02T01:00")), "in 2 hours");
+});

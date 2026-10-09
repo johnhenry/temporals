@@ -105,10 +105,23 @@ export function formatRelative<T extends TemporalPoint>(from: T, to: T, opts: Re
   });
   const fields = dur as unknown as Record<string, number>;
   for (const [field, unit] of REL_ORDER) {
-    const v = fields[field] ?? 0;
+    let v = fields[field] ?? 0;
+    if (v !== 0 && field === "days" && (k === "zoneddatetime" || k === "datetime")) {
+      // `until` counts elapsed 24h spans ("1 day 23 hours" for 47h); relative
+      // days are calendar days, so count date boundaries in the target's zone.
+      v = calendarDays(from, to);
+    }
     if (v !== 0) return rtf.format(v, unit);
   }
   return rtf.format(0, "second");
+}
+
+/** Signed number of calendar dates from `from` to `to`, in `to`'s time zone. */
+function calendarDays<T extends TemporalPoint>(from: T, to: T): number {
+  type DateLike = { toPlainDate(): Temporal.PlainDate };
+  type Zoned = DateLike & { withTimeZone(tz: string): DateLike; timeZoneId: string };
+  const f = kindOf(from) === "zoneddatetime" ? (from as unknown as Zoned).withTimeZone((to as unknown as Zoned).timeZoneId) : (from as unknown as DateLike);
+  return f.toPlainDate().until((to as unknown as DateLike).toPlainDate(), { largestUnit: "day" }).days;
 }
 
 function nowLike<T extends TemporalPoint>(point: T): T {
