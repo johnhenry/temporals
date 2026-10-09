@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.1 — 2026-10-09
+
+- Fix: `describeCron` expanded step fields into literal lists. Steps now read as
+  steps in every field: `*/5 * * * *` is "every 5 minutes", `0 */2 * * *` is
+  "every 2 hours", `1-30/10 * * * *` is "every 10 minutes from minute 1 through
+  30 past the hour", `0 0 */2 * *` is "on every 2nd day of the month", and
+  `0 0 1 */3 *` is "in every 3rd month". A full-range step that does not divide
+  its period (`*/45` minutes) and day-of-week steps keep the literal list, since
+  "every 45 minutes" would be wrong.
+- Fix: `formatRelative` / `fromNow` said "tomorrow" for any gap of 24-47 hours.
+  Zoned and plain date-times now count calendar days (in the target's time
+  zone), so "tomorrow" means the next calendar date and a 47-hour gap spanning
+  two dates is "in 2 days".
+
 ## 0.1.0 — 2026-10-08
 
 - New: `isoWeekOf(point)` returns `{ year, week }` (ISO week number and week-year).

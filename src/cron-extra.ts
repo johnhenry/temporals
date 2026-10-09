@@ -30,11 +30,51 @@ function listNames(values: number[], names: string[]): string {
   return `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}`;
 }
 
+/** A single-token step expression: `*\/n`, `a-b/n`, or `a/n` (= `a`..max). */
+interface Step {
+  n: number;
+  from: number;
+  to: number;
+  /** Covers the field's whole range (`*\/n`, `min/n`, `min-max/n`). */
+  full: boolean;
+}
+
+/**
+ * Parse `token` as a step over [min, max]. Returns `null` for anything else
+ * (lists, plain values, named values, `n = 1`) so callers fall back to the
+ * literal description. With `period`, a full-range step is only accepted when it
+ * divides the period evenly: `*\/45` minutes is `:00` and `:45`, not "every 45".
+ */
+function stepOf(token: string | undefined, min: number, max: number, period?: number): Step | null {
+  const m = token ? /^(\*|\d+|\d+-\d+)\/(\d+)$/.exec(token) : null;
+  if (!m) return null;
+  const n = Number(m[2]);
+  if (n < 2) return null;
+  let from = min;
+  let to = max;
+  if (m[1] !== "*") {
+    const [a, b] = m[1]!.split("-");
+    from = Number(a);
+    if (b !== undefined) to = Number(b);
+  }
+  const full = from === min && to === max;
+  if (full && period !== undefined && period % n !== 0) return null;
+  return { n, from, to, full };
+}
+
+function ordinal(n: number): string {
+  const r = n % 100;
+  if (r >= 11 && r <= 13) return `${n}th`;
+  return `${n}${["th", "st", "nd", "rd"][n % 10 > 3 ? 0 : n % 10]}`;
+}
+
 /** English for the seconds field alone, or `null` when it adds nothing ("0"). */
 function describeSeconds(p: ParsedCron, token: string): string | null {
   if (p.second.wildcard) return "every second";
-  const step = /^\*\/(\d+)$/.exec(token);
-  if (step) return `every ${Number(step[1])} seconds`;
+  const step = stepOf(token, 0, 59, 60);
+  if (step) {
+    return step.full ? `every ${step.n} seconds` : `every ${step.n} seconds from ${step.from} through ${step.to}`;
+  }
   const secs = sorted(p.second.values);
   if (secs.length === 1) return secs[0] === 0 ? null : `at second ${secs[0]}`;
   const contiguous = secs.length > 2 && secs.every((v, i) => i === 0 || v === secs[i - 1]! + 1);
@@ -42,7 +82,7 @@ function describeSeconds(p: ParsedCron, token: string): string | null {
   return `at seconds ${secs.join(", ")}`;
 }
 
-function describeTime(p: ParsedCron, secondToken = ""): string {
+function describeTime(p: ParsedCron, secondToken = "", minuteToken = "", hourToken = ""): string {
   const mins = sorted(p.minute.values);
   const hours = sorted(p.hour.values);
   const singleSecond = p.hasSeconds && !p.second.wildcard && p.second.values.size === 1;
@@ -58,11 +98,37 @@ function describeTime(p: ParsedCron, secondToken = ""): string {
     if (singleSecond) return `${sec} of every minute`;
     return sec;
   }
-  const base = describeTimeBase(p, mins, hours);
+  const base = describeTimeBase(p, mins, hours, minuteToken, hourToken);
   return sec ? `${sec}, ${base}` : base;
 }
 
-function describeTimeBase(p: ParsedCron, mins: number[], hours: number[]): string {
+function describeTimeBase(
+  p: ParsedCron,
+  mins: number[],
+  hours: number[],
+  minuteToken: string,
+  hourToken: string,
+): string {
+  const mStep = stepOf(minuteToken, 0, 59, 60);
+  const hStep = stepOf(hourToken, 0, 23, 24);
+  if (mStep || hStep) {
+    const hourRange = hStep && !hStep.full ? ` from ${hStep.from} through ${hStep.to}` : "";
+    if (mStep) {
+      const mp = mStep.full
+        ? `every ${mStep.n} minutes`
+        : `every ${mStep.n} minutes from minute ${mStep.from} through ${mStep.to}`;
+      if (hStep) return `${mp} of every ${ordinal(hStep.n)} hour${hourRange}`;
+      if (p.hour.wildcard) return mStep.full ? mp : `${mp} past the hour`;
+      return `${mp} of hours ${listNames(hours, [])}`;
+    }
+    const everyNth = `every ${ordinal(hStep!.n)} hour${hourRange}`;
+    if (!p.minute.wildcard && mins.length === 1) {
+      if (mins[0] === 0) return `every ${hStep!.n} hours${hourRange}`;
+      return `at minute ${mins[0]} of ${everyNth}`;
+    }
+    if (p.minute.wildcard) return `every minute of ${everyNth}`;
+    return `at minute ${listNames(mins, [])} of ${everyNth}`;
+  }
   if (p.hour.wildcard && !p.minute.wildcard && mins.length === 1) {
     return `at ${mins[0]} minutes past every hour`;
   }
@@ -71,7 +137,12 @@ function describeTimeBase(p: ParsedCron, mins: number[], hours: number[]): strin
   return `at ${minPart} of ${hourPart}`;
 }
 
-function describeDom(dom: DayField): string {
+function describeDom(dom: DayField, token = ""): string {
+  const step = stepOf(token, 1, 31);
+  if (step && !dom.lastOffsets?.length && !dom.lastWeekday && !dom.nearestWeekday?.length) {
+    const range = step.full ? "" : ` from ${step.from} through ${step.to}`;
+    return `on every ${ordinal(step.n)} day of the month${range}`;
+  }
   const bits: string[] = [];
   if (dom.values.size) bits.push(`day-of-month ${listNames(sorted(dom.values), [])}`);
   for (const off of dom.lastOffsets ?? []) {
@@ -93,14 +164,25 @@ function describeDow(dow: DayField): string {
 /** A best-effort English description of a cron expression. */
 export function describeCron(expr: string, seconds?: boolean): string {
   const p = parseCron(expr, seconds);
-  const secondToken = p.hasSeconds ? (expr.trim().split(/\s+/)[0] ?? "") : "";
-  const parts: string[] = [describeTime(p, secondToken)];
+  const tokens = expr.trim().split(/\s+/);
+  // Macros (`@daily`) expand to fewer tokens; only index fields of a plain expression.
+  const o = tokens.length === (p.hasSeconds ? 6 : 5) ? 0 : -1;
+  const tok = (i: number) => (o === 0 ? (tokens[i + (p.hasSeconds ? 1 : 0)] ?? "") : "");
+  const secondToken = p.hasSeconds && o === 0 ? tokens[0]! : "";
+  const parts: string[] = [describeTime(p, secondToken, tok(0), tok(1))];
   const domR = !p.dom.wildcard;
   const dowR = !p.dow.wildcard;
   if (domR && dowR) parts.push(`${describeDom(p.dom)} or ${describeDow(p.dow)} (cron OR)`);
-  else if (domR) parts.push(describeDom(p.dom));
+  else if (domR) parts.push(describeDom(p.dom, tok(2)));
   else if (dowR) parts.push(describeDow(p.dow));
-  if (!p.month.wildcard) parts.push(`in ${listNames(sorted(p.month.values), ["", ...MONTH_FULL])}`);
+  if (!p.month.wildcard) {
+    const step = stepOf(tok(3), 1, 12, 12);
+    const names = ["", ...MONTH_FULL];
+    if (step) {
+      const range = step.full ? "" : ` from ${names[step.from]} through ${names[step.to]}`;
+      parts.push(`in every ${ordinal(step.n)} month${range}`);
+    } else parts.push(`in ${listNames(sorted(p.month.values), names)}`);
+  }
   return parts.join(", ");
 }
 
