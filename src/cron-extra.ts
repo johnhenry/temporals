@@ -236,19 +236,89 @@ export function cronToRule<T extends TemporalPoint>(
 }
 
 /**
+ * Result of `ruleToCronDetailed`: either a cron expression or `null` with an
+ * explanation of why the conversion failed.
+ */
+export interface RuleToCronResult {
+  /** The cron expression (5 fields: minute hour dom month dow), or null if not representable */
+  cron: string | null;
+  /** When cron is null, explains why the rule can't be converted (e.g., "needs byHour") */
+  reason?: string;
+}
+
+/**
  * Best-effort RRULE → cron. Handles fixed time-of-day daily / weekly / monthly /
  * yearly rules, emitting Quartz `L` for last-day / last-weekday and `d#n` for
  * nth-weekday. Returns `null` when the rule uses features cron can't express
  * (intervals, bySetPos, sub-daily, `nth` other than last, …).
  */
 export function ruleToCron(rule: RecurRule): string | null {
-  if (rule.interval && rule.interval !== 1) return null;
-  if (rule.bySetPos || rule.byWeekNo || rule.byYearDay) return null;
-  if (["hourly", "minutely", "secondly"].includes(rule.freq)) return null;
+  return ruleToCronDetailed(rule).cron;
+}
 
+/**
+ * Best-effort RRULE → cron with detailed failure reasons.
+ *
+ * Converts recurring rules to cron expressions (5-field standard format).
+ * When the rule uses unsupported features, returns `{ cron: null, reason: "..." }`
+ * so callers can tell users what to change.
+ *
+ * Supports:
+ * - Fixed time-of-day (single byHour, single or absent byMinute)
+ * - Daily / weekly / monthly / yearly frequencies
+ * - Quartz specials: `L` (last day), `dL` (last weekday), `d#n` (nth weekday)
+ *
+ * Does not support:
+ * - Intervals other than 1 (e.g., every 2 weeks)
+ * - Sub-daily frequencies (hourly, minutely, secondly)
+ * - bySetPos, byWeekNo, byYearDay (not cron-expressible)
+ * - nth weekday other than last (-2, -3, …)
+ *
+ * @example
+ * ```js
+ * ruleToCronDetailed({ freq: 'daily', byHour: [9], byMinute: [0] })
+ * // => { cron: "0 9 * * *" }
+ *
+ * ruleToCronDetailed({ freq: 'daily' })
+ * // => { cron: null, reason: "needs byHour (hour of day)" }
+ *
+ * ruleToCronDetailed({ freq: 'daily', interval: 2, byHour: [9], byMinute: [0] })
+ * // => { cron: null, reason: "interval must be 1 (cron doesn't support every 2+ days)" }
+ * ```
+ */
+export function ruleToCronDetailed(rule: RecurRule): RuleToCronResult {
+  // Reject non-1 intervals
+  if (rule.interval && rule.interval !== 1) {
+    return {
+      cron: null,
+      reason: "interval must be 1 (cron doesn't support every 2+ days/weeks/months)",
+    };
+  }
+
+  // Reject features with no cron equivalent
+  if (rule.bySetPos) {
+    return { cron: null, reason: "bySetPos is not supported in cron" };
+  }
+  if (rule.byWeekNo) {
+    return { cron: null, reason: "byWeekNo is not supported in cron" };
+  }
+  if (rule.byYearDay) {
+    return { cron: null, reason: "byYearDay is not supported in cron" };
+  }
+
+  // Reject sub-daily frequencies
+  if (["hourly", "minutely", "secondly"].includes(rule.freq)) {
+    return { cron: null, reason: `${rule.freq} is not supported in cron (needs fixed daily cadence)` };
+  }
+
+  // Require byHour (cron needs a fixed hour)
   const hour = rule.byHour && rule.byHour.length === 1 ? rule.byHour[0]! : undefined;
+  if (hour === undefined) {
+    return { cron: null, reason: "needs byHour (hour of day, must be a single value)" };
+  }
+
+  // byMinute is optional; default to 0
   const minute = rule.byMinute && rule.byMinute.length === 1 ? rule.byMinute[0]! : 0;
-  if (hour === undefined) return null;
 
   const month = rule.byMonth && rule.byMonth.length ? rule.byMonth.join(",") : "*";
 
@@ -261,7 +331,7 @@ export function ruleToCron(rule: RecurRule): string | null {
       else if (w.nth === undefined) tokens.push(String(RRULE_TO_CRON_DOW[w.weekday]));
       else if (w.nth === -1) tokens.push(`${RRULE_TO_CRON_DOW[w.weekday]}L`);
       else if (w.nth >= 1) tokens.push(`${RRULE_TO_CRON_DOW[w.weekday]}#${w.nth}`);
-      else return null; // -2, -3, … have no cron form
+      else return { cron: null, reason: `weekday nth=${w.nth} is not supported (use -1 for last, 1+ for nth)` };
     }
     dow = tokens.join(",");
   }
@@ -274,5 +344,5 @@ export function ruleToCron(rule: RecurRule): string | null {
     }
     dom = tokens.join(",");
   }
-  return `${minute} ${hour} ${dom} ${month} ${dow}`;
+  return { cron: `${minute} ${hour} ${dom} ${month} ${dow}` };
 }

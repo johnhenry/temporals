@@ -189,8 +189,11 @@ syntax — `*`, `?`, ranges, steps, lists, names (`JAN`, `MON`, …); `@daily`/
 
 DST policy is explicit: `dstGap: "fire"` (default, shift forward) or `"skip"`;
 `dstOverlap: "first"` (default) or `"second"`. Also `parseCron`, `describeCron`
-(humaniser), and best-effort `cronToRule` / `ruleToCron` converters (lossy — they
-return `null` rather than guess; `L`/`#` map to RRULE `nth`/last).
+(humaniser), and best-effort converters:
+
+- `cronToRule(expr, start) → RecurRule | null` — cron → RRULE (lossy; returns `null` rather than guess; `L`/`#` map to RRULE `nth`/last)
+- `ruleToCron(rule) → string | null` — RRULE → cron (5-field standard). Returns `null` for non-representable rules (intervals ≠ 1, sub-daily, bySetPos, byWeekNo, byYearDay, unsupported `nth` values).
+- `ruleToCronDetailed(rule) → { cron: string | null, reason?: string }` — like `ruleToCron`, but explains *why* a conversion failed (e.g., "needs byHour", "interval must be 1"). Use this to tell users what to change in their recurrence rule.
 
 ### `Schedule` — one interface for cron, RRULE, and ranges
 

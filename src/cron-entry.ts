@@ -8,7 +8,7 @@ import { cronOccurrences, parseCron, type CronOptions } from "./cron.js";
  */
 
 export { cron, parseCron, type CronOptions, type ParsedCron, type Field, type DayField } from "./cron.js";
-export { describeCron, cronToRule, ruleToCron } from "./cron-extra.js";
+export { describeCron, cronToRule, ruleToCron, ruleToCronDetailed, type RuleToCronResult } from "./cron-extra.js";
 
 /**
  * A unified {@link Schedule} from a cron expression (occurrences are
