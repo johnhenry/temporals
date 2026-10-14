@@ -137,7 +137,7 @@ test("converters return null on non-representable patterns", () => {
 
 test("ruleToCronDetailed: returns successful conversions with no reason", () => {
   const start = Temporal.PlainDate.from("2026-01-01");
-  const rule = { start, freq: "weekly", byHour: [9], byMinute: [0], byWeekday: ["MO", "TU"] };
+  const rule = { start, freq: "weekly" as const, byHour: [9], byMinute: [0], byWeekday: ["MO" as const, "TU" as const] };
   const result = ruleToCronDetailed(rule);
   assert.equal(result.cron, "0 9 * * 1,2");
   assert.equal(result.reason, undefined);
@@ -145,7 +145,7 @@ test("ruleToCronDetailed: returns successful conversions with no reason", () => 
 
 test("ruleToCronDetailed: explains missing byHour", () => {
   const start = Temporal.PlainDate.from("2026-01-01");
-  const rule = { start, freq: "daily", byMinute: [0] } as any;
+  const rule = { start, freq: "daily" as const, byMinute: [0] };
   const result = ruleToCronDetailed(rule);
   assert.equal(result.cron, null);
   assert.match(result.reason!, /byHour/i);
@@ -153,7 +153,7 @@ test("ruleToCronDetailed: explains missing byHour", () => {
 
 test("ruleToCronDetailed: explains non-1 interval", () => {
   const start = Temporal.PlainDate.from("2026-01-01");
-  const rule = { start, freq: "weekly", interval: 2, byHour: [9], byMinute: [0], byWeekday: ["MO"] };
+  const rule = { start, freq: "weekly" as const, interval: 2, byHour: [9], byMinute: [0], byWeekday: ["MO" as const] };
   const result = ruleToCronDetailed(rule);
   assert.equal(result.cron, null);
   assert.match(result.reason!, /interval/i);
@@ -161,7 +161,7 @@ test("ruleToCronDetailed: explains non-1 interval", () => {
 
 test("ruleToCronDetailed: explains sub-daily frequencies", () => {
   const start = Temporal.PlainDate.from("2026-01-01");
-  const ruleHourly = { start, freq: "hourly" } as any;
+  const ruleHourly = { start, freq: "hourly" as const };
   const result = ruleToCronDetailed(ruleHourly);
   assert.equal(result.cron, null);
   assert.match(result.reason!, /hourly|minutely|secondly/i);
@@ -169,7 +169,7 @@ test("ruleToCronDetailed: explains sub-daily frequencies", () => {
 
 test("ruleToCronDetailed: explains bySetPos", () => {
   const start = Temporal.PlainDate.from("2026-01-01");
-  const rule = { start, freq: "daily", byHour: [9], byMinute: [0], bySetPos: [1] } as any;
+  const rule = { start, freq: "daily" as const, byHour: [9], byMinute: [0], bySetPos: [1] };
   const result = ruleToCronDetailed(rule);
   assert.equal(result.cron, null);
   assert.match(result.reason!, /bySetPos/i);
@@ -177,7 +177,7 @@ test("ruleToCronDetailed: explains bySetPos", () => {
 
 test("ruleToCronDetailed: explains byWeekNo", () => {
   const start = Temporal.PlainDate.from("2026-01-01");
-  const rule = { start, freq: "daily", byHour: [9], byMinute: [0], byWeekNo: [1] } as any;
+  const rule = { start, freq: "daily" as const, byHour: [9], byMinute: [0], byWeekNo: [1] };
   const result = ruleToCronDetailed(rule);
   assert.equal(result.cron, null);
   assert.match(result.reason!, /byWeekNo/i);
@@ -185,7 +185,7 @@ test("ruleToCronDetailed: explains byWeekNo", () => {
 
 test("ruleToCronDetailed: explains byYearDay", () => {
   const start = Temporal.PlainDate.from("2026-01-01");
-  const rule = { start, freq: "daily", byHour: [9], byMinute: [0], byYearDay: [100] } as any;
+  const rule = { start, freq: "daily" as const, byHour: [9], byMinute: [0], byYearDay: [100] };
   const result = ruleToCronDetailed(rule);
   assert.equal(result.cron, null);
   assert.match(result.reason!, /byYearDay/i);
@@ -193,7 +193,7 @@ test("ruleToCronDetailed: explains byYearDay", () => {
 
 test("ruleToCronDetailed: explains unsupported weekday nth", () => {
   const start = Temporal.PlainDate.from("2026-01-01");
-  const rule = { start, freq: "monthly", byHour: [0], byWeekday: [{ weekday: "TU", nth: -2 }] } as any;
+  const rule = { start, freq: "monthly" as const, byHour: [0], byWeekday: [{ weekday: "TU" as const, nth: -2 }] };
   const result = ruleToCronDetailed(rule);
   assert.equal(result.cron, null);
   assert.match(result.reason!, /nth|weekday/i);
