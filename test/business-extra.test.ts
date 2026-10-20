@@ -76,3 +76,27 @@ test("meetingSlots: enriched output ranks trivially across time zones", () => {
   const ranked = [...slots].sort((x, y) => x.latestLocalHour - y.latestLocalHour);
   assert.equal(ranked[0]!.latestLocalHour, 12);
 });
+
+test("WorkingHours: explicit DST policy", () => {
+  const tz = "America/New_York";
+  // spring forward 2026-03-08: 02:00-03:00 does not exist
+  const gap = (dst?: "compatible" | "earlier" | "later" | "reject") =>
+    new WorkingHours({ windows: [["02:30", "04:00"]], dst });
+  const day = (d: string) => [Temporal.ZonedDateTime.from(`${d}T00:00[${tz}]`), Temporal.ZonedDateTime.from(`${d}T23:59[${tz}]`)] as const;
+  const [gs, ge] = day("2026-03-08");
+  const hours = (wh: WorkingHours, s: Temporal.ZonedDateTime, e: Temporal.ZonedDateTime) =>
+    wh.intervalsBetween(s, e).totalDuration().total("minutes");
+  assert.equal(hours(gap(), gs, ge), 30); // default = compatible: 03:30-04:00
+  assert.equal(hours(gap("compatible"), gs, ge), 30);
+  assert.equal(hours(gap("later"), gs, ge), 30);
+  assert.equal(hours(gap("earlier"), gs, ge), 90); // 02:30 slides back to 01:30 EST; 01:30-04:00 wall = 90 elapsed min
+  assert.throws(() => gap("reject").intervalsBetween(gs, ge), RangeError);
+  // fall back 2026-11-01: 01:00-02:00 happens twice
+  const over = (dst?: "compatible" | "earlier" | "later" | "reject") =>
+    new WorkingHours({ windows: [["01:30", "03:00"]], dst });
+  const [os, oe] = day("2026-11-01");
+  assert.equal(hours(over(), os, oe), 150); // default: first 01:30 (EDT) -> 03:00 EST
+  assert.equal(hours(over("earlier"), os, oe), 150);
+  assert.equal(hours(over("later"), os, oe), 90); // second 01:30 (EST) -> 03:00 EST
+  assert.throws(() => over("reject").intervalsBetween(os, oe), RangeError);
+});

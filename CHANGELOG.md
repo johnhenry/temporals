@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0
+
+- New: `humanizeDuration(d, { precision })` accepts `"millisecond"`, `"microsecond"`
+  or `"nanosecond"` to render sub-second parts (`1s 500ms`). The default stays
+  `"second"`, so existing output is unchanged.
+- New: `new WorkingHours({ dst })` sets an explicit DST policy for window
+  boundaries that fall in a skipped or repeated hour: `"compatible"` (default,
+  the previous behaviour), `"earlier"`, `"later"`, or `"reject"` (throws `RangeError`).
+  Exports the `DstPolicy` type from `@johnhenry/temporals/business`.
+
 ## 0.1.1 — 2026-10-09
 
 - Fix: `describeCron` expanded step fields into literal lists. Steps now read as

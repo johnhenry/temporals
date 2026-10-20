@@ -78,3 +78,24 @@ test("formatRelative: PlainDateTime uses calendar days too", () => {
   assert.equal(formatRelative(DT("2026-01-01T10:00"), DT("2026-01-02T10:00")), "tomorrow");
   assert.equal(formatRelative(DT("2026-01-01T23:00"), DT("2026-01-02T01:00")), "in 2 hours");
 });
+
+test("humanizeDuration: sub-second precision is opt-in", () => {
+  const d = Dur({ seconds: 1, milliseconds: 500 });
+  // default is unchanged: sub-second units are ignored
+  assert.equal(humanizeDuration(d), "1 second");
+  assert.equal(humanizeDuration(Dur({ milliseconds: 500 })), "0 seconds");
+  assert.equal(humanizeDuration(d, { precision: "millisecond" }), "1 second, 500 milliseconds");
+  assert.equal(humanizeDuration(d, { precision: "millisecond", short: true }), "1s 500ms");
+  assert.equal(humanizeDuration(Dur({ milliseconds: 1 }), { precision: "millisecond" }), "1 millisecond");
+  assert.equal(
+    humanizeDuration(Dur({ milliseconds: 2, microseconds: 3, nanoseconds: 4 }), { precision: "nanosecond" }),
+    "2 milliseconds, 3 microseconds, 4 nanoseconds",
+  );
+  assert.equal(
+    humanizeDuration(Dur({ milliseconds: 2, microseconds: 3, nanoseconds: 4 }), { precision: "microsecond", short: true }),
+    "2ms 3µs",
+  );
+  assert.equal(humanizeDuration(Dur({ milliseconds: 2, microseconds: 3 }), { precision: "nanosecond", max: 1 }), "2 milliseconds");
+  assert.equal(humanizeDuration(Dur({ nanoseconds: 0 }), { precision: "nanosecond" }), "0 seconds");
+  assert.equal(humanizeDuration(Dur({ nanoseconds: 0 }), { precision: "millisecond", short: true }), "0s");
+});

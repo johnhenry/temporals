@@ -249,12 +249,24 @@ export class BusinessCalendar {
 /** A working-hours window as `"HH:MM"` open/close local times. */
 export type Window = [open: string, close: string];
 
+/**
+ * How a window's wall-clock open/close time resolves on a DST transition day,
+ * mirroring `Temporal`'s `disambiguation`:
+ * - `"compatible"` (default): a skipped time moves forward, a repeated time uses the first occurrence.
+ * - `"earlier"`: a skipped time moves back by the gap, a repeated time uses the first occurrence.
+ * - `"later"`: a skipped time moves forward, a repeated time uses the second occurrence.
+ * - `"reject"`: throw a `RangeError` if a window boundary is skipped or repeated.
+ */
+export type DstPolicy = "compatible" | "earlier" | "later" | "reject";
+
 /** Daily working-hours windows, evaluated in the zone of the instants you pass. */
 export class WorkingHours {
   private readonly windows: Window[];
   private readonly calendar?: BusinessCalendar;
+  private readonly dst: DstPolicy;
 
-  constructor(opts: { windows?: Window[]; calendar?: BusinessCalendar } = {}) {
+  constructor(opts: { windows?: Window[]; calendar?: BusinessCalendar; dst?: DstPolicy } = {}) {
+    this.dst = opts.dst ?? "compatible";
     this.windows = (opts.windows ?? [["09:00", "17:00"]]).slice().sort((a, b) => a[0].localeCompare(b[0]));
     this.calendar = opts.calendar;
   }
@@ -267,8 +279,11 @@ export class WorkingHours {
       const openT = T.PlainTime.from(open);
       const closeT = T.PlainTime.from(close);
       const crosses = T.PlainTime.compare(closeT, openT) <= 0; // e.g. 22:00–06:00
-      const s = date.toZonedDateTime({ timeZone, plainTime: openT });
-      const e = (crosses ? date.add({ days: 1 }) : date).toZonedDateTime({ timeZone, plainTime: closeT });
+      const disambiguation = this.dst;
+      const s = date.toPlainDateTime(openT).toZonedDateTime(timeZone, { disambiguation });
+      const e = (crosses ? date.add({ days: 1 }) : date)
+        .toPlainDateTime(closeT)
+        .toZonedDateTime(timeZone, { disambiguation });
       return new Interval<ZDT>(s, e);
     });
   }

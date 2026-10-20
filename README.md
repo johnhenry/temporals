@@ -263,6 +263,9 @@ cal.nthBusinessDay(2026, 1, -1);       // last business day of the month (payrol
 
 const hours = new WorkingHours({ windows: [["22:00", "06:00"]], calendar: cal }); // overnight OK
 businessDuration(start, end, hours);   // elapsed working time (skips weekends/holidays/off-hours)
+// DST policy for window boundaries that are skipped/repeated: "compatible" (default),
+// "earlier", "later", or "reject" (throws RangeError)
+new WorkingHours({ windows: [["02:30", "04:00"]], dst: "reject" });
 
 // Mutual availability across people, each in their own zone:
 const slots = meetingSlots({
@@ -285,6 +288,7 @@ per slot so *ranking* is trivial, but the ranking *policy* is yours.
 import { humanizeDuration, formatRelative, fromNow, parseDuration } from "@johnhenry/temporals/humanize";
 
 humanizeDuration(Temporal.Duration.from({ hours: 2, minutes: 3 })); // "2 hours, 3 minutes"
+humanizeDuration(dur, { precision: "millisecond" }); // "1 second, 500 milliseconds" (default ignores sub-second)
 humanizeDuration(dur, { locale: "fr" });          // localized via Intl.DurationFormat when available
 parseDuration("1h30m");                          // Temporal.Duration
 formatRelative(from, to);                         // "in 5 days" (via Intl.RelativeTimeFormat)
