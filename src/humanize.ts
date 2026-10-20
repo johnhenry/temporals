@@ -16,7 +16,12 @@ const FIELDS: [string, string, string][] = [
   ["hours", "hour", "h"],
   ["minutes", "minute", "m"],
   ["seconds", "second", "s"],
+  ["milliseconds", "millisecond", "ms"],
+  ["microseconds", "microsecond", "µs"],
+  ["nanoseconds", "nanosecond", "ns"],
 ];
+
+const PRECISION_FIELDS = { second: 7, millisecond: 8, microsecond: 9, nanosecond: 10 } as const;
 
 /** Options for {@link humanizeDuration}. */
 export interface HumanizeOptions {
@@ -24,6 +29,12 @@ export interface HumanizeOptions {
   short?: boolean;
   /** Keep at most this many (largest) units. */
   max?: number;
+  /**
+   * Smallest unit to render. Defaults to `"second"`, so sub-second parts of the
+   * duration are ignored (the long-standing behaviour). Pass `"millisecond"`,
+   * `"microsecond"` or `"nanosecond"` to include them (`1s 500ms`).
+   */
+  precision?: "second" | "millisecond" | "microsecond" | "nanosecond";
   /**
    * Locale for localized output. When set and the runtime provides
    * `Intl.DurationFormat` (Node 24+/modern browsers), formatting is localized;
@@ -43,7 +54,8 @@ type DurationFormatCtor = new (
  * `1 hour, 30 minutes`.
  */
 export function humanizeDuration(duration: Temporal.Duration, opts: HumanizeOptions = {}): string {
-  const { short = false, max = Infinity, locale } = opts;
+  const { short = false, max = Infinity, locale, precision = "second" } = opts;
+  const fields = FIELDS.slice(0, PRECISION_FIELDS[precision]);
   const d = duration as unknown as Record<string, number>;
 
   // Localized path (opt-in): use Intl.DurationFormat when a locale is requested
@@ -52,7 +64,7 @@ export function humanizeDuration(duration: Temporal.Duration, opts: HumanizeOpti
   if (locale && DF) {
     const input: Record<string, number> = {};
     let kept = 0;
-    for (const [field] of FIELDS) {
+    for (const [field] of fields) {
       const v = d[field] ?? 0;
       if (v === 0) continue;
       input[field] = v;
@@ -62,7 +74,7 @@ export function humanizeDuration(duration: Temporal.Duration, opts: HumanizeOpti
   }
 
   const parts: string[] = [];
-  for (const [field, long, abbr] of FIELDS) {
+  for (const [field, long, abbr] of fields) {
     const v = d[field] ?? 0;
     if (v === 0) continue;
     parts.push(short ? `${v}${abbr}` : `${v} ${long}${Math.abs(v) === 1 ? "" : "s"}`);
