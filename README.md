@@ -36,6 +36,7 @@ range({ start: Temporal.Now.plainDateISO(), step: { days: 1 } })
 - [Documentation](#documentation)
 - [API](#api)
 - [Supported point types](#supported-point-types)
+- [viaframe panes](#viaframe-panes)
 - [Scope & limitations](#scope--limitations)
 - [Family](#family)
 - [License](#license)
@@ -326,6 +327,16 @@ it lives in a separate extension that wraps `temporals`.
 (`recur`) requires a date-bearing start (`PlainDate`/`PlainDateTime`/`ZonedDateTime`).
 `cron` always produces `ZonedDateTime`.
 
+## viaframe panes
+
+[`viaframe/`](viaframe) is a separate npm package, **`@johnhenry/temporals-viaframe`**: a
+[viaframe](https://viaframe.johnhenry.me) pane package with six panes built on this library — working
+hours (open now? next opening), business time between two moments, adding business days over
+holidays, durations in words, relative time, and RRULE occurrences. It isn't part of this package's
+`dist/` and adds nothing to it; each pane carries its own bundled copy of the library (with
+`temporal-polyfill` as a fallback). Its README covers installing it in viaframe and building it, and
+`npm test` here runs every pane's tests too.
+
 ## Scope & limitations
 
 Being upfront about the edges:
@@ -357,6 +368,12 @@ Being upfront about the edges:
   serialize the source instead — cron string, `formatRule(rule)`, or `.ics`.
 - The reference **scheduler** ([`examples/scheduler`](examples/scheduler)) is a
   demo, not a durable/clustered job runner.
+- **The viaframe panes** (`@johnhenry/temporals-viaframe`) cover working hours,
+  business time and days, durations in words, relative time and RRULE
+  occurrences, not the whole API (no cron, intervals, ranges or `.ics`). Each
+  pane carries a bundled copy of the library at the version it was built from,
+  so a fix here reaches viaframe only with a new version of that package. Their
+  own limits are in [`viaframe/README.md`](viaframe/README.md#limitations).
 
 ## Family
 
