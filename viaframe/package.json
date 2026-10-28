@@ -1,0 +1,42 @@
+{
+  "name": "@johnhenry/temporals-viaframe",
+  "version": "0.1.0",
+  "description": "Calendar and duration panes for viaframe, from @johnhenry/temporals: working hours (open now? next opening), business time between two moments, adding business days over holidays, durations in words, relative time and RRULE occurrences. Offline: no network, no server.",
+  "license": "MIT",
+  "type": "module",
+  "author": "John Henry <john@iamjohnhenry.com>",
+  "keywords": [
+    "viaframe-package",
+    "viaframe",
+    "temporal",
+    "calendar",
+    "business-hours",
+    "working-hours",
+    "holidays",
+    "duration",
+    "humanize",
+    "rrule"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnhenry/temporals.git",
+    "directory": "viaframe"
+  },
+  "homepage": "https://github.com/johnhenry/temporals/tree/main/viaframe#readme",
+  "bugs": {
+    "url": "https://github.com/johnhenry/temporals/issues"
+  },
+  "viaframe": "temporals-viaframe.viaframe-pkg.json",
+  "files": [
+    "temporals-viaframe.viaframe-pkg.json",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/build.mjs --check && node scripts/viaframe.mjs pkg check . --strict",
+    "test": "node scripts/viaframe.mjs pkg test ."
+  }
+}

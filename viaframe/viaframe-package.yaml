@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=https://viaframe.johnhenry.me/schemas/viaframe-package.v1.schema.json
+# The panes of @johnhenry/temporals-viaframe, for `viaframe pkg pack` (the name, version, description and
+# licence are package.json's). Each canvas is written by scripts/build.mjs from src/panes.mjs: edit that,
+# not panes/. Keep the ids stable: canvases find a pane by package name and id.
+panes:
+  - id: working-hours
+    title: Working hours
+    description: Is a schedule open at a moment, and if not, when does it open next? Working windows in a time zone, a weekend and holidays (the US federal list, Easter-based days, fixed dates) give `open`, `closesAt`, `nextOpen` and the wait in milliseconds and in words.
+    icon: '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" stroke="currentColor" fill="none" stroke-width="1.2"/><path d="M8 5v3.2l2.2 1.3" stroke="currentColor" fill="none" stroke-width="1.2"/></svg>'
+    canvas: panes/working-hours.viaframe.json
+    hosts: []
+  - id: business-time
+    title: Business time between
+    description: The working time between two moments under a schedule (windows, a weekend, holidays), in milliseconds, hours and words, and how many working days the stretch touches. Friday 15:00 to Monday 11:00 on a 09:00 to 17:00 week is 4 hours.
+    icon: '<svg viewBox="0 0 16 16"><path d="M2 12.5h12M3.5 12.5V7M6.5 12.5V4.5M9.5 12.5V7M12.5 12.5V9" stroke="currentColor" fill="none" stroke-width="1.2"/></svg>'
+    canvas: panes/business-time.viaframe.json
+    hosts: []
+  - id: add-business-days
+    title: Add business days
+    description: Move a date by a number of working days (negative goes back), skipping the weekend and holidays, and list the days off it skipped. Three working days from 23 December 2026 with the US federal holidays is Tuesday 29 December.
+    icon: '<svg viewBox="0 0 16 16"><path d="M2.5 4h11v9.5h-11zM2.5 7h11M5.5 2.5v3M10.5 2.5v3M6 10.2h4M8.6 8.8l1.4 1.4-1.4 1.4" stroke="currentColor" fill="none" stroke-width="1.2"/></svg>'
+    canvas: panes/add-business-days.viaframe.json
+    hosts: []
+  - id: duration-words
+    title: Duration in words
+    description: A duration as words. Takes milliseconds, an ISO 8601 duration (PT1H30M, P2W3D) or shorthand (1h 30m), and gives "1 day, 2 hours" (or "1d 2h" with `short`), its ISO form, and its milliseconds when it has a fixed length. `maxUnits` keeps the largest units; `locale` localizes where Intl.DurationFormat exists.
+    icon: '<svg viewBox="0 0 16 16"><path d="M4.5 2.5h7M4.5 13.5h7M5 2.5c0 3 6 3.5 6 5.5s-6 2.5-6 5.5M11 2.5c0 3-6 3.5-6 5.5s6 2.5 6 5.5" stroke="currentColor" fill="none" stroke-width="1.2"/></svg>'
+    canvas: panes/duration-words.viaframe.json
+    hosts: []
+  - id: relative-time
+    title: Relative time
+    description: One time said relative to another, with Intl.RelativeTimeFormat ("in 2 days", "tomorrow", "3 hours ago") in a locale. Days are calendar days in `zone`, so the 26 hours from 23:00 on one day to 01:00 two days later are "in 2 days" (less than a day is said in hours). Also the time between, in words.
+    icon: '<svg viewBox="0 0 16 16"><path d="M2 8h9M8 5l3 3-3 3M13.5 3.5v9" stroke="currentColor" fill="none" stroke-width="1.2"/></svg>'
+    canvas: panes/relative-time.viaframe.json
+    hosts: []
+  - id: recurrence
+    title: Next occurrences (RRULE)
+    description: The times of an RFC 5545 recurrence rule (FREQ=WEEKLY;BYDAY=MO,WE, FREQ=MONTHLY;BYDAY=2TU, COUNT, UNTIL, INTERVAL, …) from a start time in a zone, keeping the wall clock across daylight saving changes. Gives each time with its zone and in UTC, optionally only those after a moment.
+    icon: '<svg viewBox="0 0 16 16"><path d="M3 8a5 5 0 0 1 9-3M12.5 2.5V5H10M13 8a5 5 0 0 1-9 3M3.5 13.5V11H6" stroke="currentColor" fill="none" stroke-width="1.2"/></svg>'
+    canvas: panes/recurrence.viaframe.json
+    hosts: []

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- New: [`viaframe/`](viaframe), a separate npm package, `@johnhenry/temporals-viaframe` 0.1.0:
+  a viaframe pane package with six panes built on this library (working hours, business time
+  between two moments, add business days, duration in words, relative time, next RRULE
+  occurrences), built with viaframe's `viaframe pkg` tooling. It doesn't change this package's
+  `dist/` or its published files. `npm test` runs every pane's tests and its adapter's
+  (`test/viaframe-panes.test.ts`), and `esbuild` is now a direct dev dependency (it bundles the panes'
+  copy of the library; it was already installed through `tsup`).
+
 ## 0.3.0
 
 - New: `humanizeDuration(d, { precision })` accepts `"millisecond"`, `"microsecond"`
