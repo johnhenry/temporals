@@ -25,3 +25,25 @@ jobs:
         npm test
         npm run build
     secrets: inherit
+
+  # Second package, same commit: the viaframe pane package in viaframe/ is published as
+  # @johnhenry/temporals-viaframe with its own version (viaframe/package.json), on the same
+  # npm-view guard, so a push that doesn't bump it is a clean no-op. The package file
+  # (temporals-viaframe.viaframe-pkg.json) is committed; rebuilding it needs the viaframe
+  # CLI, which isn't on npm, so the gate checks what npm would pack instead of rebuilding.
+  # Trusted publishing is keyed to this workflow file (release.yml) for BOTH packages.
+  publish-viaframe:
+    permissions:
+      contents: write # tag + GitHub Release by-product of npm-publish.yml
+      id-token: write # npm provenance
+    uses: johnhenry/workflows/.github/workflows/npm-publish.yml@v1
+    with:
+      node-version: "26"
+      working-directory: viaframe
+      install-command: "true" # no dependencies; the package file is committed
+      node-cache: ""
+      tag-prefix: "@johnhenry/temporals-viaframe@" # v<version> tags belong to the root package
+      gate-commands: |
+        node -e 'const p=require("./package.json"); if(!require("fs").existsSync(p.viaframe)) throw new Error("missing "+p.viaframe); if(JSON.parse(require("fs").readFileSync(p.viaframe,"utf8")).packageVersion!==p.version) throw new Error("package file version != package.json version")'
+        npm pack --dry-run --ignore-scripts
+    secrets: inherit
